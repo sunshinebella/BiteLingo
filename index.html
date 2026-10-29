@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2f6df6" />
+  <link rel="manifest" href="manifest.webmanifest?v=20261029d" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=20261029d" />
+  <title>碎片学英语 · QA Global English</title>
+  <link rel="stylesheet" href="styles.css?v=20261029d" />
+</head>
+<body>
+  <div class="app">
+    <!-- 首页 -->
+    <section id="view-home" class="view active">
+      <div class="topbar">
+        <h1>碎片学英语</h1>
+        <span class="sub" id="home-date"></span>
+      </div>
+      <div class="card">
+        <div class="streak">
+          <div class="num" id="streak-num">0</div>
+          <div>
+            <div class="lbl">连续打卡天数</div>
+            <div class="muted" id="streak-tip">今天还没打卡，点下面按钮开始</div>
+          </div>
+        </div>
+        <button class="btn primary block" id="btn-checkin" style="margin-top:14px;">今日打卡</button>
+      </div>
+
+      <div class="section-title">今日碎片任务</div>
+      <div class="card">
+        <div class="checklist" id="home-checklist"></div>
+      </div>
+
+      <div class="section-title">快速开始</div>
+      <div class="btn-row">
+        <button class="btn soft" data-go="vocab">词汇</button>
+        <button class="btn soft" data-go="listen">跟读</button>
+        <button class="btn soft" data-go="scenario">场景</button>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn soft" data-go="reading">阅读</button>
+        <button class="btn soft" data-go="writing">写作</button>
+        <button class="btn soft" data-go="plan">计划</button>
+      </div>
+    </section>
+
+    <!-- 词汇 -->
+    <section id="view-vocab" class="view">
+      <div class="topbar"><h1>词汇卡</h1><span class="sub progress-pill" id="vocab-progress"></span></div>
+      <div id="vocab-box"></div>
+      <div class="card" id="vocab-done" style="display:none;">
+        <div class="empty">今天的复习任务清空啦<br/><span class="muted">没 emoji 我也能夸你，今天真棒</span></div>
+      </div>
+      <div class="section-title">按分类自学</div>
+      <div id="vocab-cats"></div>
+    </section>
+
+    <!-- 听力跟读 -->
+    <section id="view-listen" class="view">
+      <div class="topbar"><h1>听力跟读</h1><span class="sub">听 → 默 → 说</span></div>
+      <div id="voice-card"></div>
+      <div id="mic-status" class="mic-status"></div>
+      <div class="card">
+        <div class="row between"><h2 style="margin:0;">影子跟读</h2><button class="btn soft" id="listen-play-all">连播本组</button></div>
+        <div class="muted" style="margin:6px 0 10px;">点喇叭听原声，遮住中文自己说一遍，再点开核对。</div>
+        <div id="listen-box"></div>
+        <div class="muted" id="listen-speak-stat" style="margin-top:10px;"></div>
+        <div class="section-title" style="margin-top:6px;">选择分类</div>
+        <div class="row wrap" id="listen-cats"></div>
+      </div>
+    </section>
+
+    <!-- 场景 -->
+    <section id="view-scenario" class="view">
+      <div class="topbar"><h1>场景对话</h1><span class="sub">开会前预热</span></div>
+      <div id="scenario-list"></div>
+      <div id="scenario-detail" style="display:none;"></div>
+    </section>
+
+    <!-- 阅读 -->
+    <section id="view-reading" class="view">
+      <div class="topbar"><h1>阅读</h1><span class="sub">术语高亮</span></div>
+      <div id="reading-list"></div>
+      <div id="reading-detail" style="display:none;"></div>
+    </section>
+
+    <!-- 写作 -->
+    <section id="view-writing" class="view">
+      <div class="topbar"><h1>写作日记</h1><span class="sub">每天 1 题</span></div>
+      <div class="card">
+        <div class="row between"><h2 style="margin:0;" id="write-prompt-title"></h2><span class="tag gray" id="write-prompt-day"></span></div>
+        <div class="muted" id="write-prompt-text" style="margin:8px 0 12px;"></div>
+        <textarea id="write-input" placeholder="用英语写几句，哪怕 3 句也行……"></textarea>
+        <div class="row between" style="margin-top:10px;">
+          <span class="muted" id="write-count">0 词</span>
+          <button class="btn primary" id="write-save">保存今日写作</button>
+        </div>
+      </div>
+      <div class="section-title">历史写作</div>
+      <div id="write-history"></div>
+    </section>
+
+    <!-- 计划 -->
+    <section id="view-plan" class="view">
+      <div class="topbar"><h1>学习计划</h1><span class="sub">4 周渐进</span></div>
+      <div id="plan-weekly"></div>
+      <div class="card">
+        <h2>每日节奏（碎片化）</h2>
+        <ul id="plan-rhythm" style="margin:0; padding-left:18px; color:var(--ink-2);"></ul>
+      </div>
+      <div class="card">
+        <h2>铁律</h2>
+        <ul id="plan-rules" style="margin:0; padding-left:18px; color:var(--ink-2);"></ul>
+      </div>
+    </section>
+
+    <!-- 进度 -->
+    <section id="view-progress" class="view">
+      <div class="topbar"><h1>进度</h1><span class="sub">看得见的变化</span></div>
+      <div class="stat-grid" id="progress-stats"></div>
+      <div class="card" style="margin-top:14px;">
+        <h2>数据备份（跨设备同步）</h2>
+        <div class="muted">导出为 JSON 文件，换设备/换浏览器时导入即可恢复打卡、词汇与写作。也可用网盘中转实现简单同步。</div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button class="btn soft" id="btn-export">导出备份</button>
+          <button class="btn soft" id="btn-import">导入备份</button>
+        </div>
+        <input type="file" id="import-file" accept="application/json,.json" style="display:none;" />
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <h2>打卡日历</h2>
+        <div id="checkin-summary" class="muted"></div>
+        <div id="checkin-calendar" style="margin-top:10px;"></div>
+        <div id="checkin-recent" style="margin-top:10px;"></div>
+      </div>
+      <div class="card" style="margin-top:14px;">
+        <h2>分类掌握度</h2>
+        <div id="progress-cats"></div>
+      </div>
+    </section>
+
+    <!-- 底部导航 -->
+    <nav class="nav" id="nav">
+      <button data-view="home" class="active"><span class="ic">首</span>首页</button>
+      <button data-view="vocab"><span class="ic">词</span>词汇</button>
+      <button data-view="listen"><span class="ic">听</span>跟读</button>
+      <button data-view="scenario"><span class="ic">景</span>场景</button>
+      <button data-view="reading"><span class="ic">读</span>阅读</button>
+      <button data-view="writing"><span class="ic">写</span>写作</button>
+      <button data-view="plan"><span class="ic">划</span>计划</button>
+      <button data-view="progress"><span class="ic">进</span>进度</button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js?v=20261029d"></script>
+  <script src="app.js?v=20261029d"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js?v=20261029d").catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
