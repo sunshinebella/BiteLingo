@@ -11,6 +11,9 @@
 
 ---
 
+## 2026-10-29（仓库接入 GitHub）
+- `22:12:40` `[文档记录]` 初始化 Git 仓库（main 基线 + develop 工作分支），合并远端 README 初始提交后推送双分支至 github.com/sunshinebella/BiteLingo；新增 `.gitignore`（排除 .workbuddy/ 项目记忆、.wbapp_*.genie 发布标记、_pw*.js 临时验证脚本、.DS_Store）；README 由模板重写为项目说明（功能矩阵、技术栈、本地运行、目录结构、数据备份、分支与变更约定）。
+
 ## 2026-10-29（词汇 banner 切换修复 + 中文释义）
 - `09:54:12` `[缺陷修复]` 词汇切换后 banner 框中的单词和音标不能一并切换：根因为分类区点词只执行 speak() 朗读、从不更新 flashcard，banner 仍停在复习队列第一词。修复：新增 pinnedVocab 钉住机制并抽出 renderFlashcard(v) 统一渲染——点分类词即把该词的单词/音标/释义一并切进 banner，评分（记得/不记得）后自动解除钉住回到复习队列，翻面逻辑不受影响。验证：Playwright 实测点击 "blocker" 后 banner 由 standup→blocker、音标同步切换、评分后回到队列、零页面错误。
 - `09:54:12` `[新需求]` 词汇 banner 正面新增中文释义行（.zh-banner，竖线强调样式），切词即随单词/音标一并更新；翻面后仍保留完整释义/例句/翻译。版本号升 v20261029d 强制刷新缓存。
