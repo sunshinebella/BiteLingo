@@ -11,6 +11,9 @@
 
 ---
 
+## 2026-10-29（发布 v1.0.1）
+- `22:28:10` `[文档记录]` develop 合并入 main 并发布 v1.0.1（--no-ff 保留合并记录）：含词汇 banner 切换修复、banner 中文释义、SW 离线回退健壮性；为 GitHub Pages 子路径部署做好准备。
+
 ## 2026-10-29（离线回退健壮性）
 - `22:21:30` `[优化增强]` Service Worker 离线回退缺陷修复：原实现 `caches.match(e.request)` 带 `?v=` 查询串匹配失败后无条件回退 index.html，会把 HTML 错喂给 JS/CSS 请求导致离线白屏。改为 `ignoreSearch: true` 忽略版本号匹配缓存，且仅在导航请求（`request.mode === "navigate"`）时回退 index.html，其余返回 `Response.error()`；缓存名升 `eng-pwa-v3`，资源版本号升 v20261029e。适配 GitHub Pages 子路径部署（资源与 manifest 均为相对路径）。
 
