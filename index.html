@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2f6df6" />
-  <link rel="manifest" href="manifest.webmanifest?v=20261029e" />
-  <link rel="apple-touch-icon" href="icon-192.png?v=20261029e" />
+  <meta name="author" content="Bella (sunshinebella)" />
+  <meta name="description" content="BiteLingo 碎片学英语：面向电商交易 / 中台 QA 的碎片化英语学习工具，含词汇间隔重复、听力跟读、口语评测、会议场景、阅读、写作与打卡。" />
+  <link rel="manifest" href="manifest.webmanifest?v=20261029f" />
+  <link rel="apple-touch-icon" href="icon-192.png?v=20261029f" />
   <title>碎片学英语 · QA Global English</title>
-  <link rel="stylesheet" href="styles.css?v=20261029e" />
+  <link rel="stylesheet" href="styles.css?v=20261029f" />
 </head>
 <body>
   <div class="app">
@@ -139,6 +141,10 @@
         <h2>分类掌握度</h2>
         <div id="progress-cats"></div>
       </div>
+      <div class="about">
+        <div>BiteLingo · 碎片学英语　v1.0.1</div>
+        <div>作者：Bella　<a href="https://github.com/sunshinebella/BiteLingo" target="_blank" rel="noopener">github.com/sunshinebella/BiteLingo</a></div>
+      </div>
     </section>
 
     <!-- 底部导航 -->
@@ -156,12 +162,12 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="data.js?v=20261029e"></script>
-  <script src="app.js?v=20261029e"></script>
+  <script src="data.js?v=20261029f"></script>
+  <script src="app.js?v=20261029f"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
-        navigator.serviceWorker.register("sw.js?v=20261029e").catch(function () {});
+        navigator.serviceWorker.register("sw.js?v=20261029f").catch(function () {});
       });
     }
   </script>

@@ -65,6 +65,14 @@ CHANGELOG.md              类型化变更记录
 - 每次改动必须打类型标签并写入 `CHANGELOG.md`：
   `[缺陷修复]` / `[优化增强]` / `[新需求]` / `[文档记录]`，带日期与精确到秒的时间
 
+## 作者
+
+**Bella**（[@sunshinebella](https://github.com/sunshinebella)）—— 电商交易 / 中台 QA，10+ 年测试经验。
+
+- 仓库：https://github.com/sunshinebella/BiteLingo
+- 线上：https://sunshinebella.github.io/BiteLingo/
+- 本项目为个人学习工具，语料取自真实工作场景（站会、缺陷复盘、发布 go/no-go、API 契约）。
+
 ## 许可
 
-个人学习工具，未附开源许可。
+个人学习工具，未附开源许可。如需引用语料或代码，请先联系作者。
