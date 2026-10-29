@@ -11,6 +11,9 @@
 
 ---
 
+## 2026-10-29（离线回退健壮性）
+- `22:21:30` `[优化增强]` Service Worker 离线回退缺陷修复：原实现 `caches.match(e.request)` 带 `?v=` 查询串匹配失败后无条件回退 index.html，会把 HTML 错喂给 JS/CSS 请求导致离线白屏。改为 `ignoreSearch: true` 忽略版本号匹配缓存，且仅在导航请求（`request.mode === "navigate"`）时回退 index.html，其余返回 `Response.error()`；缓存名升 `eng-pwa-v3`，资源版本号升 v20261029e。适配 GitHub Pages 子路径部署（资源与 manifest 均为相对路径）。
+
 ## 2026-10-29（仓库接入 GitHub）
 - `22:12:40` `[文档记录]` 初始化 Git 仓库（main 基线 + develop 工作分支），合并远端 README 初始提交后推送双分支至 github.com/sunshinebella/BiteLingo；新增 `.gitignore`（排除 .workbuddy/ 项目记忆、.wbapp_*.genie 发布标记、_pw*.js 临时验证脚本、.DS_Store）；README 由模板重写为项目说明（功能矩阵、技术栈、本地运行、目录结构、数据备份、分支与变更约定）。
 

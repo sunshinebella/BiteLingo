@@ -1,6 +1,6 @@
 // 碎片学英语 · Service Worker（离线缓存应用壳）
 // 策略：network-first（在线永远取最新，离线才回退缓存），避免部署后长期显示旧版
-const CACHE = "eng-pwa-v2";
+const CACHE = "eng-pwa-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -40,7 +40,13 @@ self.addEventListener("fetch", (e) => {
         return resp;
       })
       .catch(() =>
-        caches.match(e.request).then((cached) => cached || caches.match("./index.html"))
+        // 离线回退：忽略 ?v= 版本号匹配缓存；仅导航请求才回退到 index.html，
+        // 否则 JS/CSS 请求被错喂 HTML 会让页面白屏。
+        caches.match(e.request, { ignoreSearch: true }).then((cached) => {
+          if (cached) return cached;
+          if (e.request.mode === "navigate") return caches.match("./index.html");
+          return Response.error();
+        })
       )
   );
 });
