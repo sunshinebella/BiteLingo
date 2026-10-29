@@ -177,6 +177,16 @@ textarea:focus { outline: none; border-color: var(--brand); }
 .cal-cell.hit { background: var(--green-soft); color: var(--green); font-weight: 700; }
 .cal-cell.today { box-shadow: inset 0 0 0 2px var(--brand); }
 .cal-cell.hit.today { box-shadow: inset 0 0 0 2px var(--green); }
+/* 日历月份切换 */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-title { font-weight: 600; font-size: 14px; color: var(--ink); }
+.cal-nav-btn { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; width: 30px; height: 30px; font-size: 16px; line-height: 1; color: var(--ink-2); cursor: pointer; }
+.cal-nav-btn:active { transform: scale(.94); }
+.cal-nav-btn:disabled { opacity: .35; cursor: default; }
+/* 打卡曲线 */
+.curve-svg { width: 100%; height: auto; display: block; }
+.curve-lb { font-size: 9px; fill: var(--ink-3); }
+.curve-base { stroke: var(--line); stroke-width: 1; }
 
 /* 场景逐句连播：当前播放句高亮 */
 .line.speaking .bubble { box-shadow: 0 0 0 2px var(--brand); background: #f5f9ff; }
