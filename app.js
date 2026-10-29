@@ -7,6 +7,9 @@
   // ---------- 基础工具 ----------
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
+  const APP_VERSION = "1.0.3";
+  const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
     vocab: "eng_vocab_v1",
@@ -788,10 +791,19 @@
   }
 
   // ---------- 启动 ----------
+  // 关于区块：版本号与仓库链接统一由常量渲染，避免发版时多处手改漏改
+  function renderAbout() {
+    const el = $("#app-about");
+    if (!el) return;
+    el.innerHTML =
+      `<div>BiteLingo · 碎片学英语　v${esc(APP_VERSION)}</div>` +
+      `<div>作者：Bella　<a href="${esc(REPO_URL)}" target="_blank" rel="noopener">github.com/sunshinebella/BiteLingo</a></div>`;
+  }
   function init() {
     const d = new Date();
     $("#home-date").textContent = `${d.getMonth() + 1}月${d.getDate()}日 · ${["周日","周一","周二","周三","周四","周五","周六"][d.getDay()]}`;
     bind();
+    renderAbout();
     // 切到后台标签页时自动暂停语音，回到前台不会自动续播（避免突兀出声）
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) { if (playChain) playChain(); else if (HAS_TTS) speechSynthesis.cancel(); }
