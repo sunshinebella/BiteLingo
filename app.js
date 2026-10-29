@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.3";
+  const APP_VERSION = "1.0.4";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -25,8 +25,10 @@
   // 探测本地存储是否可用（沙箱 iframe / 隐私模式会禁用）
   let STORAGE_OK = true;
   try { localStorage.setItem("__eng_probe", "1"); localStorage.removeItem("__eng_probe"); } catch (e) { STORAGE_OK = false; }
-  const todayStr = () => new Date().toISOString().slice(0, 10);
-  const dateAdd = (str, days) => { const d = new Date(str + "T00:00:00"); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
+  // 日期一律用本地时区（toISOString 是 UTC，北京时间 0:00-8:00 会把"今天"算成昨天）
+  const fmtDate = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const todayStr = () => fmtDate(new Date());
+  const dateAdd = (str, days) => { const d = new Date(str + "T00:00:00"); d.setDate(d.getDate() + days); return fmtDate(d); };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   function toast(msg) {
@@ -528,10 +530,13 @@
   }
 
   // ---------- 打卡日历 ----------
+  let calView = null; // 当前查看的月份 {y, m}；null = 本月
   function renderCheckinCalendar() {
     const log = getCheckinLog(), set = new Set(log), today = todayStr();
     const now = new Date(today + "T00:00:00");
-    const y = now.getFullYear(), m = now.getMonth();
+    const ty = now.getFullYear(), tm = now.getMonth();
+    if (!calView) calView = { y: ty, m: tm };
+    const y = calView.y, m = calView.m;
     const pad = n => String(n).padStart(2, "0");
     const prefix = y + "-" + pad(m + 1);
     const first = new Date(y, m, 1);
@@ -550,15 +555,70 @@
       return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + '">' + d + "</div>";
     }).join("");
     const monthCount = log.filter(x => x.indexOf(prefix) === 0).length;
+    const isCur = y === ty && m === tm;
     const recent = log.slice(-6).reverse().map(x => x.slice(5)).join("、");
-    $("#checkin-summary").innerHTML = "累计打卡 <b>" + log.length + "</b> 天 · 本月 <b>" + monthCount + "</b> 天 · 当前连续 <b>" + getStreak().count + "</b> 天";
+    $("#checkin-summary").innerHTML = "累计打卡 <b>" + log.length + "</b> 天 · " + (isCur ? "本月" : esc(y + "年" + (m + 1) + "月")) + " <b>" + monthCount + "</b> 天 · 当前连续 <b>" + getStreak().count + "</b> 天";
     $("#checkin-calendar").innerHTML =
-      '<div class="cal-head">' + y + " 年 " + monthNames[m] + "</div>" +
+      '<div class="cal-nav">' +
+        '<button id="cal-prev" class="cal-nav-btn" aria-label="上一月">‹</button>' +
+        '<span class="cal-title">' + y + " 年 " + monthNames[m] + "</span>" +
+        '<button id="cal-next" class="cal-nav-btn" aria-label="下一月"' + (isCur ? " disabled" : "") + ">›</button>" +
+      "</div>" +
       '<div class="cal-grid cal-head-row">' + heads.map(h => "<div>" + h + "</div>").join("") + "</div>" +
       '<div class="cal-grid">' + grid + "</div>";
+    $("#cal-prev").onclick = () => {
+      let ny = calView.y, nm = calView.m - 1;
+      if (nm < 0) { nm = 11; ny--; }
+      calView = { y: ny, m: nm };
+      renderCheckinCalendar();
+    };
+    $("#cal-next").onclick = () => {
+      if (isCur) return;
+      let ny = calView.y, nm = calView.m + 1;
+      if (nm > 11) { nm = 0; ny++; }
+      calView = { y: ny, m: nm };
+      renderCheckinCalendar();
+    };
+    renderCheckinCurve(set, today);
     $("#checkin-recent").innerHTML = log.length
       ? '<div class="muted" style="font-size:12.5px;">最近打卡：' + esc(recent) + "</div>"
       : '<div class="muted" style="font-size:12.5px;">还没有打卡记录，从今天开始吧</div>';
+  }
+
+  // 近 30 天打卡曲线：累计打卡次数的折线，绿色圆点=当天有打卡
+  function renderCheckinCurve(set, today) {
+    const box = $("#checkin-curve");
+    if (!box) return;
+    const N = 30;
+    const base = new Date(today + "T00:00:00");
+    const pts = [];
+    let cum = 0;
+    for (let i = N - 1; i >= 0; i--) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - i);
+      const ds = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+      const hit = set.has(ds);
+      if (hit) cum++;
+      pts.push({ i: N - 1 - i, ds, hit, cum });
+    }
+    const W = 320, H = 72, padL = 6, padR = 6, padT = 8, padB = 14;
+    const max = Math.max(1, cum);
+    const x = i => padL + (i * (W - padL - padR)) / (N - 1);
+    const yv = v => padT + (1 - v / max) * (H - padT - padB);
+    const line = pts.map((p, k) => (k ? "L" : "M") + x(p.i).toFixed(1) + "," + yv(p.cum).toFixed(1)).join(" ");
+    const dots = pts.filter(p => p.hit)
+      .map(p => '<circle cx="' + x(p.i).toFixed(1) + '" cy="' + yv(p.cum).toFixed(1) + '" r="2.6" fill="#22a55b"/>')
+      .join("");
+    const labels =
+      '<text x="' + padL + '" y="' + (H - 2) + '" class="curve-lb">' + esc(pts[0].ds.slice(5)) + "</text>" +
+      '<text x="' + (W - padR) + '" y="' + (H - 2) + '" class="curve-lb" text-anchor="end">' + esc(pts[N - 1].ds.slice(5)) + "</text>";
+    box.innerHTML =
+      '<svg viewBox="0 0 ' + W + " " + H + '" class="curve-svg" preserveAspectRatio="none">' +
+        '<line x1="' + padL + '" y1="' + yv(max).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + yv(max).toFixed(1) + '" class="curve-base"/>' +
+        '<path d="' + line + '" fill="none" stroke="#2f6df6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+        dots + labels +
+      "</svg>" +
+      '<div class="muted" style="font-size:12px;text-align:center;margin-top:2px;">近 30 天打卡曲线（窗口内累计 ' + cum + " 次）</div>";
   }
 
   // ---------- 渲染：进度 ----------
