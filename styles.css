@@ -188,6 +188,9 @@ textarea:focus { outline: none; border-color: var(--brand); }
   opacity: 0; transition: .25s; pointer-events: none; z-index: 99; max-width: 80%; text-align: center;
 }
 .toast.show { opacity: .95; }
+.about { margin: 22px 4px 6px; text-align: center; font-size: 12px; line-height: 1.8; color: var(--ink-3); }
+.about a { color: var(--brand); text-decoration: none; }
+.about a:active { opacity: .7; }
 
 /* 麦克风可用性自检提示 */
 .mic-status {
