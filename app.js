@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.5";
+  const APP_VERSION = "1.0.6";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -681,7 +681,7 @@
 
   // ---------- 口语评测：麦克风录音 + 简单打分 ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null, mime: "", finalGot: false };
+  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null, mime: "", finalGot: false, stopping: false };
   // 安全上下文判定：https 或 localhost/127.0.0.1 均可使用麦克风
   function secureCtx() {
     try {
@@ -696,9 +696,11 @@
     if (!box) return;
     const hasMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     const ok = secureCtx() && hasMedia;
+    const srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
     let tip;
     if (ok) {
       tip = "麦克风可用：点「录音评测」会弹出授权，允许即可。";
+      if (!srOk) tip += " 注意：该浏览器不支持发音内容识别（录音评测将使用「回放+自评」）；建议用 Safari / Chrome 打开，可获得匹配度自动评分。";
       box.className = "mic-status ok";
     } else if (!secureCtx()) {
       tip = "当前环境非安全上下文，麦克风会被浏览器禁用。请用手机/电脑的「原生浏览器」打开分享链接（https），不要在 WorkBuddy 预览面板内使用。";
@@ -746,9 +748,13 @@
     if (au) box.appendChild(au);
   }
   function showSelfRate(i, en) {
-    const box = $("#rec-result-" + i); if (!box || box.dataset.scored) return;
+    const box = $("#rec-result-" + i); if (!box || box.dataset.scored || box.dataset.valid === "0") return;
     const au = box.querySelector("audio"); // 保留录音回放，别被 innerHTML 覆盖掉
-    box.innerHTML = `<div class="muted" style="margin-top:8px;">当前环境不支持语音识别，请听回放自评：</div>
+    // 诚实区分「AI 识别评分」和「自评」：无识别环境明确告知，避免自评被误当发音评分
+    const tip = SR
+      ? "未识别到清晰语音，请听回放后自评（自评结果与识别评分分开记录）："
+      : "当前浏览器不支持发音内容识别（微信内置浏览器不支持），用 Safari / Chrome 打开本页可获得匹配度自动评分；本条请听回放后自评：";
+    box.innerHTML = `<div class="muted" style="margin-top:8px;">${tip}</div>
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn" data-rate="60">还行</button>
         <button class="btn" data-rate="80">不错</button>
@@ -760,6 +766,8 @@
       const prev = st[en]; const best = prev && prev.score != null ? Math.max(prev.score, v) : v;
       st[en] = { score: best, self: true, at: new Date().toISOString() };
       save(KEY.speak, st); box.dataset.scored = "1";
+      // 自评只允许一次：按钮置灰，防重复刷分
+      $$("#rec-result-" + i + " [data-rate]").forEach(x => { x.disabled = true; x.style.opacity = ".5"; x.style.cursor = "default"; });
       toast("已记录自评：" + v + "%");
     });
   }
@@ -773,15 +781,49 @@
     } catch (e) {}
     return "";
   }
+  // 录音有效性检测：解码音频取真实时长 + 人声能量（RMS），拒绝空录音/过短/无声录音
+  function analyzeRecording(blob) {
+    return new Promise(res => {
+      const invalid = () => res({ ok: false, duration: 0, speechSec: 0 });
+      try {
+        if (!blob || blob.size < 2048) { invalid(); return; } // 几乎无数据
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) { res({ ok: true, duration: 0, speechSec: 0 }); return; } // 无法分析时不误杀
+        const ac = new AC();
+        const bail = ok => { try { ac.close(); } catch (e) {} res({ ok, duration: 0, speechSec: 0 }); };
+        blob.arrayBuffer().then(buf => {
+          // webkit 前缀回调式与 Promise 式都兼容
+          let p;
+          try { p = ac.decodeAudioData(buf); } catch (e) { p = new Promise((rs, rj) => ac.decodeAudioData(buf, rs, rj)); }
+          Promise.resolve(p).then(a => {
+            const ch = a.getChannelData(0), sr = a.sampleRate, hop = 1024;
+            let frames = 0, speechFrames = 0, peak = 0;
+            for (let i = 0; i + hop <= ch.length; i += hop) {
+              let sum = 0;
+              for (let j = 0; j < hop; j++) { const v = ch[i + j], av = v < 0 ? -v : v; sum += v * v; if (av > peak) peak = av; }
+              if (Math.sqrt(sum / hop) > 0.015) speechFrames++; // 高于人声底噪判定为说话帧
+              frames++;
+            }
+            const speechSec = frames ? speechFrames * hop / sr : 0;
+            try { ac.close(); } catch (e) {}
+            // 有效判定：总时长 ≥0.8s，且有效人声 ≥0.4s；低增益麦克风用峰值兜底（peak>0.1 时放宽到 ≥0.2s）
+            const ok = a.duration >= 0.8 && (speechSec >= 0.4 || (peak > 0.1 && speechSec >= 0.2));
+            res({ ok, duration: a.duration, speechSec, peak });
+          }).catch(() => bail(blob.size >= 2048)); // 解码失败不误杀，靠体积兜底
+        }).catch(() => bail(blob.size >= 2048));
+      } catch (e) { invalid(); }
+    });
+  }
   function startRec(i, en, btn) {
     if (rec.active) return;
+    if (rec.stopping) { toast("上一条录音处理中，请稍候 1 秒再录"); return; } // onstop 异步收尾未完成，防竞态
     if (!secureCtx()) {
       toast("麦克风需 https 或 localhost 环境；本预览/非安全页不支持，请用浏览器直接打开分享链接");
       return;
     }
     rec.active = true; rec.i = i; rec.en = en; rec.btn = btn; rec.finalGot = false;
     const prevBox = $("#rec-result-" + i);
-    if (prevBox) { delete prevBox.dataset.scored; prevBox.innerHTML = ""; }
+    if (prevBox) { delete prevBox.dataset.scored; delete prevBox.dataset.valid; prevBox.innerHTML = ""; }
     btn.textContent = "停止录音"; btn.classList.add("green");
     getMicStream().then(stream => {
       rec.stream = stream;
@@ -792,21 +834,32 @@
         rec.chunks = [];
         rec.mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
         rec.mr.onstop = () => {
-          // 用实际录制格式的 MIME 打标，否则 iOS(mp4) 上标成 webm 会播放报错
           const blob = new Blob(rec.chunks, rec.mime ? { type: rec.mime } : undefined);
-          const url = URL.createObjectURL(blob);
           const box = $("#rec-result-" + i);
-          if (box) {
-            box.querySelectorAll("audio").forEach(a => a.remove());
-            const au = document.createElement("audio");
-            au.controls = true; au.src = url; au.style.marginTop = "8px"; au.style.width = "100%";
-            au.onerror = () => {
-              toast("回放失败：当前浏览器不支持该录音格式，请听原声自评");
-              if (!box.dataset.scored) showSelfRate(rec.i, rec.en);
-            };
-            box.appendChild(au);
-          }
-          stream.getTracks().forEach(t => t.stop());
+          const finish = ok => {
+            if (box) {
+              box.querySelectorAll("audio").forEach(a => a.remove());
+              if (!ok) {
+                // 空录音/太短/无人声：不生成播放器、不允许评分，直接提示重录
+                box.dataset.valid = "0";
+                box.innerHTML = `<div class="muted" style="margin-top:8px;color:var(--amber);">⚠ 无效录音（空录音 / 太短 / 未检测到人声），本次不计入评测，请点「录音评测」重录。</div>`;
+                toast("录音无效：未检测到有效语音，请靠近麦克风重录");
+              } else {
+                box.dataset.valid = "1";
+                // 用实际录制格式的 MIME 打标，否则 iOS(mp4) 上标成 webm 会播放报错
+                const au = document.createElement("audio");
+                au.controls = true; au.src = URL.createObjectURL(blob); au.style.marginTop = "8px"; au.style.width = "100%";
+                au.onerror = () => {
+                  toast("回放失败：当前浏览器不支持该录音格式，请听原声自评");
+                  if (!box.dataset.scored) showSelfRate(rec.i, rec.en);
+                };
+                box.appendChild(au);
+              }
+            }
+            stream.getTracks().forEach(t => t.stop());
+            rec.stopping = false;
+          };
+          analyzeRecording(blob).then(r => finish(r.ok)).catch(() => finish(blob.size >= 2048));
         };
         rec.mr.start();
       } catch (e) {
@@ -831,13 +884,13 @@
           for (let k = e.resultIndex; k < e.results.length; k++) if (e.results[k].isFinal) final += e.results[k][0].transcript;
           if (final) { rec.finalGot = true; showScore(i, en, final); }
         };
-        // 识别失败/无结果时兜底走自评，不再静默吞掉
+        // 识别失败/无结果时兜底走自评，不再静默吞掉（无效录音除外）
         r.onerror = () => {};
         r.onend = () => {
           rec.sr = null;
           setTimeout(() => {
             const box = $("#rec-result-" + i);
-            if (!rec.finalGot && box && !box.dataset.scored) showSelfRate(i, en);
+            if (!rec.finalGot && box && !box.dataset.scored && box.dataset.valid !== "0") showSelfRate(i, en);
           }, 800);
         };
         rec.sr = r; r.start();
@@ -846,17 +899,22 @@
   }
   function stopRec(btn) {
     const wasRecording = rec.mr && rec.mr.state === "recording";
+    rec.stopping = !!wasRecording; // onstop 异步收尾期间禁止立即重录
     if (wasRecording) rec.mr.stop(); // onstop 里统一停音轨，提前 stop 会丢最后一帧
     if (rec.sr) { try { rec.sr.stop(); } catch (e) {} rec.sr = null; }
     if (!wasRecording && rec.stream) rec.stream.getTracks().forEach(t => t.stop());
     rec.active = false;
     if (btn) { btn.textContent = "录音评测"; btn.classList.remove("green"); }
     rec.btn = null;
-    // 无识别环境（或识别未产出结果）兜底自评：延迟一点等 onresult/onend 先到
-    setTimeout(() => {
+    // 无识别环境（或识别未产出结果）兜底自评：轮询等有效性分析先出结论，无效录音不给评分入口
+    let tries = 0;
+    const t = setInterval(() => {
+      tries++;
       const box = $("#rec-result-" + rec.i);
-      if (!rec.finalGot && box && !box.dataset.scored) showSelfRate(rec.i, rec.en);
-    }, 1200);
+      if (!box || box.dataset.valid === "0" || box.dataset.scored || rec.finalGot) { clearInterval(t); return; }
+      if (box.dataset.valid === "1") { clearInterval(t); showSelfRate(rec.i, rec.en); }
+      if (tries > 10) clearInterval(t); // 最多等 3s，超时放弃（正常不会走到）
+    }, 300);
   }
 
   // ---------- 导航 ----------
