@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.4";
+  const APP_VERSION = "1.0.5";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -681,7 +681,7 @@
 
   // ---------- 口语评测：麦克风录音 + 简单打分 ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null };
+  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null, mime: "", finalGot: false };
   // 安全上下文判定：https 或 localhost/127.0.0.1 均可使用麦克风
   function secureCtx() {
     try {
@@ -736,21 +736,25 @@
     st[en] = { score: best, transcript, missed, at: new Date().toISOString() };
     save(KEY.speak, st);
     box.dataset.scored = "1";
+    const au = box.querySelector("audio"); // 保留录音回放，别被 innerHTML 覆盖掉
     box.innerHTML = `<div class="row between" style="margin-top:8px;">
         <span class="tag ${score >= 80 ? "green" : score >= 50 ? "amber" : "gray"}">匹配度 ${score}%</span>
         <span class="muted">最佳 ${best}%</span>
       </div>
       <div class="muted" style="margin-top:6px;">你读的：${esc(transcript)}</div>
       ${missed.length ? `<div class="muted" style="margin-top:4px;">漏读 / 偏差：${esc(missed.join(", "))}</div>` : `<div class="muted" style="margin-top:4px;color:var(--green);">基本读全了，漂亮</div>`}`;
+    if (au) box.appendChild(au);
   }
   function showSelfRate(i, en) {
     const box = $("#rec-result-" + i); if (!box || box.dataset.scored) return;
+    const au = box.querySelector("audio"); // 保留录音回放，别被 innerHTML 覆盖掉
     box.innerHTML = `<div class="muted" style="margin-top:8px;">当前环境不支持语音识别，请听回放自评：</div>
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn" data-rate="60">还行</button>
         <button class="btn" data-rate="80">不错</button>
         <button class="btn green" data-rate="100">很棒</button>
       </div>`;
+    if (au) box.appendChild(au);
     $$("#rec-result-" + i + " [data-rate]").forEach(b => b.onclick = () => {
       const v = +b.dataset.rate; const st = getSpeak();
       const prev = st[en]; const best = prev && prev.score != null ? Math.max(prev.score, v) : v;
@@ -759,27 +763,47 @@
       toast("已记录自评：" + v + "%");
     });
   }
+  // 按浏览器能力挑选录音容器格式：Chrome/Firefox 用 webm/opus，iOS Safari 只支持 mp4/aac
+  function pickRecMime() {
+    try {
+      const list = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac", "audio/ogg;codecs=opus"];
+      for (const m of list) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
+      }
+    } catch (e) {}
+    return "";
+  }
   function startRec(i, en, btn) {
     if (rec.active) return;
     if (!secureCtx()) {
       toast("麦克风需 https 或 localhost 环境；本预览/非安全页不支持，请用浏览器直接打开分享链接");
       return;
     }
-    rec.active = true; rec.i = i; rec.en = en; rec.btn = btn;
+    rec.active = true; rec.i = i; rec.en = en; rec.btn = btn; rec.finalGot = false;
+    const prevBox = $("#rec-result-" + i);
+    if (prevBox) { delete prevBox.dataset.scored; prevBox.innerHTML = ""; }
     btn.textContent = "停止录音"; btn.classList.add("green");
     getMicStream().then(stream => {
       rec.stream = stream;
       try {
-        rec.mr = new MediaRecorder(stream);
+        const mime = pickRecMime();
+        rec.mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        rec.mime = rec.mr.mimeType || mime || "";
         rec.chunks = [];
         rec.mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
         rec.mr.onstop = () => {
-          const blob = new Blob(rec.chunks, { type: "audio/webm" });
+          // 用实际录制格式的 MIME 打标，否则 iOS(mp4) 上标成 webm 会播放报错
+          const blob = new Blob(rec.chunks, rec.mime ? { type: rec.mime } : undefined);
           const url = URL.createObjectURL(blob);
           const box = $("#rec-result-" + i);
           if (box) {
+            box.querySelectorAll("audio").forEach(a => a.remove());
             const au = document.createElement("audio");
             au.controls = true; au.src = url; au.style.marginTop = "8px"; au.style.width = "100%";
+            au.onerror = () => {
+              toast("回放失败：当前浏览器不支持该录音格式，请听原声自评");
+              if (!box.dataset.scored) showSelfRate(rec.i, rec.en);
+            };
             box.appendChild(au);
           }
           stream.getTracks().forEach(t => t.stop());
@@ -805,21 +829,34 @@
         let final = "";
         r.onresult = e => {
           for (let k = e.resultIndex; k < e.results.length; k++) if (e.results[k].isFinal) final += e.results[k][0].transcript;
-          if (final) showScore(i, en, final);
+          if (final) { rec.finalGot = true; showScore(i, en, final); }
         };
-        r.onerror = () => {}; r.onend = () => { rec.sr = null; };
+        // 识别失败/无结果时兜底走自评，不再静默吞掉
+        r.onerror = () => {};
+        r.onend = () => {
+          rec.sr = null;
+          setTimeout(() => {
+            const box = $("#rec-result-" + i);
+            if (!rec.finalGot && box && !box.dataset.scored) showSelfRate(i, en);
+          }, 800);
+        };
         rec.sr = r; r.start();
       } catch (e) { /* 识别不可用则降级为纯录音 */ }
     }
   }
   function stopRec(btn) {
-    if (rec.mr && rec.mr.state === "recording") rec.mr.stop();
+    const wasRecording = rec.mr && rec.mr.state === "recording";
+    if (wasRecording) rec.mr.stop(); // onstop 里统一停音轨，提前 stop 会丢最后一帧
     if (rec.sr) { try { rec.sr.stop(); } catch (e) {} rec.sr = null; }
-    if (rec.stream) rec.stream.getTracks().forEach(t => t.stop());
+    if (!wasRecording && rec.stream) rec.stream.getTracks().forEach(t => t.stop());
     rec.active = false;
     if (btn) { btn.textContent = "录音评测"; btn.classList.remove("green"); }
     rec.btn = null;
-    if (!SR) showSelfRate(rec.i, rec.en);
+    // 无识别环境（或识别未产出结果）兜底自评：延迟一点等 onresult/onend 先到
+    setTimeout(() => {
+      const box = $("#rec-result-" + rec.i);
+      if (!rec.finalGot && box && !box.dataset.scored) showSelfRate(rec.i, rec.en);
+    }, 1200);
   }
 
   // ---------- 导航 ----------
