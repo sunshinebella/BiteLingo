@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.6";
+  const APP_VERSION = "1.0.7";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -216,6 +216,36 @@
         <div style="flex:1">${it.label}</div>
         ${it.done ? '<span class="tag green">完成</span>' : ""}
       </div>`).join("");
+    renderMiniCalendar();
+  }
+
+  // 首页迷你打卡日历：仅本月视图（无月份切换），完整日历与曲线在进度页
+  function renderMiniCalendar() {
+    const box = $("#home-calendar");
+    if (!box) return;
+    const log = getCheckinLog(), set = new Set(log), today = todayStr();
+    const now = new Date(today + "T00:00:00");
+    const y = now.getFullYear(), m = now.getMonth();
+    const pad = n => String(n).padStart(2, "0");
+    const prefix = y + "-" + pad(m + 1);
+    const startOffset = (new Date(y, m, 1).getDay() + 6) % 7; // 周一为每周起点
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startOffset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    while (cells.length % 7) cells.push(null);
+    const heads = ["一", "二", "三", "四", "五", "六", "日"];
+    const grid = cells.map(d => {
+      if (d === null) return '<div class="cal-cell empty"></div>';
+      const ds = prefix + "-" + pad(d);
+      const hit = set.has(ds), isToday = ds === today;
+      return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + '">' + d + "</div>";
+    }).join("");
+    const monthCount = log.filter(x => x.indexOf(prefix) === 0).length;
+    $("#home-cal-summary").textContent = "本月打卡 " + monthCount + " 天 · 累计 " + log.length + " 天";
+    box.innerHTML =
+      '<div class="cal-grid cal-head-row">' + heads.map(h => "<div>" + h + "</div>").join("") + "</div>" +
+      '<div class="cal-grid">' + grid + "</div>";
   }
 
   // ---------- 渲染：词汇 ----------
