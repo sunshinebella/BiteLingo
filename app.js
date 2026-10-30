@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.8";
+  const APP_VERSION = "1.0.9";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -255,7 +255,7 @@
     while (cells.length % 7) cells.push(null);
     const heads = ["一", "二", "三", "四", "五", "六", "日"];
     const grid = cells.map(d => {
-      if (d === null) return '<div class="cal-cell empty"></div>';
+      if (d === null) return '<div class="cal-cell cal-empty"></div>';
       const ds = prefix + "-" + pad(d);
       const hit = set.has(ds), isToday = ds === today, isFuture = ds > today;
       return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + (isFuture ? " future" : "") + '">' + d + "</div>";
@@ -598,7 +598,7 @@
     const heads = ["一", "二", "三", "四", "五", "六", "日"];
     const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
     const grid = cells.map(d => {
-      if (d === null) return '<div class="cal-cell empty"></div>';
+      if (d === null) return '<div class="cal-cell cal-empty"></div>';
       const ds = prefix + "-" + pad(d);
       const hit = set.has(ds), isToday = ds === today, isFuture = ds > today;
       return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + (isFuture ? " future" : "") + '">' + d + "</div>";
