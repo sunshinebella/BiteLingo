@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.9";
+  const APP_VERSION = "1.0.10";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -301,10 +301,12 @@
           <span class="cat">${esc(v.cat)}</span>
         </div>
       </div>
-      <div class="btn-row">
-        <button class="btn ghost" id="v-flip">翻面</button>
-        <button class="btn" id="v-no" style="flex:1.4;color:var(--red);border-color:#f3c9ca;">不记得</button>
-        <button class="btn green" id="v-yes" style="flex:1.4;">记得</button>
+      <div class="vocab-actions">
+        <div class="btn-row">
+          <button class="btn ghost" id="v-flip">翻面</button>
+          <button class="btn" id="v-no" style="flex:1.4;color:var(--red);border-color:#f3c9ca;">不记得</button>
+          <button class="btn green" id="v-yes" style="flex:1.4;">记得</button>
+        </div>
       </div>`;
   }
   function afterVocab(word, correct) {
@@ -769,7 +771,7 @@
 
   // ---------- 口语评测：麦克风录音 + 简单打分 ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null, mime: "", finalGot: false, stopping: false };
+  let rec = { active: false, mr: null, sr: null, chunks: [], stream: null, i: null, en: "", btn: null, mime: "", finalGot: false, stopping: false, finished: false, stopTimer: null, finish: null, seq: 0, pending: false };
   // 安全上下文判定：https 或 localhost/127.0.0.1 均可使用麦克风
   function secureCtx() {
     try {
@@ -902,6 +904,13 @@
       } catch (e) { invalid(); }
     });
   }
+  function markInvalid(i) {
+    const box = $("#rec-result-" + i);
+    if (!box) return;
+    box.querySelectorAll("audio").forEach(a => a.remove());
+    box.dataset.valid = "0";
+    box.innerHTML = `<div class="muted" style="margin-top:8px;color:var(--amber);">⚠ 无效录音（空录音 / 太短 / 未检测到人声），本次不计入评测，请点「录音评测」重录。</div>`;
+  }
   function startRec(i, en, btn) {
     if (rec.active) return;
     if (rec.stopping) { toast("上一条录音处理中，请稍候 1 秒再录"); return; } // onstop 异步收尾未完成，防竞态
@@ -909,11 +918,17 @@
       toast("麦克风需 https 或 localhost 环境；本预览/非安全页不支持，请用浏览器直接打开分享链接");
       return;
     }
-    rec.active = true; rec.i = i; rec.en = en; rec.btn = btn; rec.finalGot = false;
+    // 同步递增会话序号：麦克风授权/取流是异步的，用户在流就绪前点「停止录音」时用于作废这次会话
+    const seq = ++rec.seq;
+    rec.active = true; rec.i = i; rec.en = en; rec.btn = btn; rec.finalGot = false; rec.finished = false; rec.pending = true;
+    if (rec.stopTimer) { clearTimeout(rec.stopTimer); rec.stopTimer = null; }
     const prevBox = $("#rec-result-" + i);
     if (prevBox) { delete prevBox.dataset.scored; delete prevBox.dataset.valid; prevBox.innerHTML = ""; }
     btn.textContent = "停止录音"; btn.classList.add("green");
     getMicStream().then(stream => {
+      // 用户在流就绪前已点停止 → 作废本次会话，不能留下「按钮已复位但仍在录音」的幽灵录音
+      if (seq !== rec.seq) { stream.getTracks().forEach(t => t.stop()); return; }
+      rec.pending = false;
       rec.stream = stream;
       try {
         const mime = pickRecMime();
@@ -921,33 +936,38 @@
         rec.mime = rec.mr.mimeType || mime || "";
         rec.chunks = [];
         rec.mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+        // 收尾函数：正常由 onstop 触发；onstop 未触发（极短录音）时由 stopRec 超时兜底调用
+        const finish = (ok, blobArg) => {
+          rec.finished = true;
+          if (rec.stopTimer) { clearTimeout(rec.stopTimer); rec.stopTimer = null; }
+          const blob = blobArg || new Blob(rec.chunks, rec.mime ? { type: rec.mime } : undefined);
+          const box = $("#rec-result-" + i);
+          if (box) {
+            box.querySelectorAll("audio").forEach(a => a.remove());
+            if (!ok) {
+              // 空录音/太短/无人声：不生成播放器、不允许评分，直接提示重录
+              box.dataset.valid = "0";
+              box.innerHTML = `<div class="muted" style="margin-top:8px;color:var(--amber);">⚠ 无效录音（空录音 / 太短 / 未检测到人声），本次不计入评测，请点「录音评测」重录。</div>`;
+              toast("录音无效：未检测到有效语音，请靠近麦克风重录");
+            } else {
+              box.dataset.valid = "1";
+              // 用实际录制格式的 MIME 打标，否则 iOS(mp4) 上标成 webm 会播放报错
+              const au = document.createElement("audio");
+              au.controls = true; au.src = URL.createObjectURL(blob); au.style.marginTop = "8px"; au.style.width = "100%";
+              au.onerror = () => {
+                toast("回放失败：当前浏览器不支持该录音格式，请听原声自评");
+                if (!box.dataset.scored) showSelfRate(rec.i, rec.en);
+              };
+              box.appendChild(au);
+            }
+          }
+          try { if (rec.stream) rec.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+          rec.stopping = false;
+        };
+        rec.finish = finish; // 必须在 onstop 之前挂上，供超时兜底
         rec.mr.onstop = () => {
           const blob = new Blob(rec.chunks, rec.mime ? { type: rec.mime } : undefined);
-          const box = $("#rec-result-" + i);
-          const finish = ok => {
-            if (box) {
-              box.querySelectorAll("audio").forEach(a => a.remove());
-              if (!ok) {
-                // 空录音/太短/无人声：不生成播放器、不允许评分，直接提示重录
-                box.dataset.valid = "0";
-                box.innerHTML = `<div class="muted" style="margin-top:8px;color:var(--amber);">⚠ 无效录音（空录音 / 太短 / 未检测到人声），本次不计入评测，请点「录音评测」重录。</div>`;
-                toast("录音无效：未检测到有效语音，请靠近麦克风重录");
-              } else {
-                box.dataset.valid = "1";
-                // 用实际录制格式的 MIME 打标，否则 iOS(mp4) 上标成 webm 会播放报错
-                const au = document.createElement("audio");
-                au.controls = true; au.src = URL.createObjectURL(blob); au.style.marginTop = "8px"; au.style.width = "100%";
-                au.onerror = () => {
-                  toast("回放失败：当前浏览器不支持该录音格式，请听原声自评");
-                  if (!box.dataset.scored) showSelfRate(rec.i, rec.en);
-                };
-                box.appendChild(au);
-              }
-            }
-            stream.getTracks().forEach(t => t.stop());
-            rec.stopping = false;
-          };
-          analyzeRecording(blob).then(r => finish(r.ok)).catch(() => finish(blob.size >= 2048));
+          analyzeRecording(blob).then(r => finish(r.ok, blob)).catch(() => finish(blob.size >= 2048, blob));
         };
         rec.mr.start();
       } catch (e) {
@@ -978,7 +998,8 @@
           rec.sr = null;
           setTimeout(() => {
             const box = $("#rec-result-" + i);
-            if (!rec.finalGot && box && !box.dataset.scored && box.dataset.valid !== "0") showSelfRate(i, en);
+            // 必须等有效性分析出结论（valid=1）才给自评入口，绝不抢跑
+            if (!rec.finalGot && box && !box.dataset.scored && box.dataset.valid === "1") showSelfRate(i, en);
           }, 800);
         };
         rec.sr = r; r.start();
@@ -986,6 +1007,16 @@
     }
   }
   function stopRec(btn) {
+    // 情况一：还在等麦克风流（授权未完成），用户已点停止 → 直接作废会话并判无效
+    if (rec.pending) {
+      rec.pending = false; rec.seq++; // 让仍在等待的 getMicStream 回调失效
+      rec.active = false; rec.stopping = false;
+      if (rec.i != null) markInvalid(rec.i);
+      if (btn) { btn.textContent = "录音评测"; btn.classList.remove("green"); }
+      rec.btn = null;
+      toast("录音太短，本次不计入评测，请重录");
+      return;
+    }
     const wasRecording = rec.mr && rec.mr.state === "recording";
     rec.stopping = !!wasRecording; // onstop 异步收尾期间禁止立即重录
     if (wasRecording) rec.mr.stop(); // onstop 里统一停音轨，提前 stop 会丢最后一帧
@@ -994,7 +1025,15 @@
     rec.active = false;
     if (btn) { btn.textContent = "录音评测"; btn.classList.remove("green"); }
     rec.btn = null;
-    // 无识别环境（或识别未产出结果）兜底自评：轮询等有效性分析先出结论，无效录音不给评分入口
+    // 兜底：极短录音（刚 start 就 stop）部分浏览器不触发 onstop —— 超时强制判无效收尾，
+    // 否则会既没有有效性判定、又没有回放，还直接漏到自评界面
+    if (wasRecording) {
+      if (rec.stopTimer) clearTimeout(rec.stopTimer);
+      rec.stopTimer = setTimeout(() => {
+        rec.stopTimer = null;
+        if (!rec.finished && typeof rec.finish === "function") rec.finish(false);
+      }, 1500);
+    }
     let tries = 0;
     const t = setInterval(() => {
       tries++;

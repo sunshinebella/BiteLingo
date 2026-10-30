@@ -165,6 +165,17 @@ textarea:focus { outline: none; border-color: var(--brand); }
 .nav button.active { color: var(--brand); }
 
 /* 打卡日历 */
+/* 词汇评测操作条：吸底常驻，下滑看卡片后不必再滑回来点「记得/不记得」 */
+.vocab-actions {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 720px; z-index: 30;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 4px);
+  padding: 12px 16px 6px;
+  background: linear-gradient(180deg, rgba(247,248,250,0), var(--bg) 48%);
+}
+.vocab-actions .btn { box-shadow: 0 4px 14px rgba(31,37,48,.10); }
+#vocab-box { padding-bottom: 56px; } /* 给吸底操作条留白，避免遮住卡片内容 */
+
 .cal-head { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 340px; margin-left: auto; margin-right: auto; }
 .cal-head-row { margin-bottom: 4px; }
