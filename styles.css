@@ -171,12 +171,29 @@ textarea:focus { outline: none; border-color: var(--brand); }
 .cal-head-row > div { text-align: center; font-size: 12px; color: var(--ink-3); font-weight: 600; }
 .cal-cell {
   aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
-  font-size: 13px; border-radius: 9px; color: var(--ink-2); background: #f3f5f8;
+  font-size: 13px; border-radius: 50%; color: var(--ink-3);
+  background: transparent; border: 1.5px dashed var(--line);
 }
-.cal-cell.empty { background: transparent; }
-.cal-cell.hit { background: var(--green-soft); color: var(--green); font-weight: 700; }
-.cal-cell.today { box-shadow: inset 0 0 0 2px var(--brand); }
+.cal-cell.empty { background: transparent; border: none; }
+.cal-cell.future { opacity: .45; }
+.cal-cell.hit { background: var(--green-soft); border: 1.5px solid transparent; color: var(--green); font-weight: 700; }
+.cal-cell.today { border-color: transparent; box-shadow: inset 0 0 0 2px var(--brand); }
 .cal-cell.hit.today { box-shadow: inset 0 0 0 2px var(--green); }
+/* 贡献日历：hero + 状态横幅 + 统计胶囊 */
+.cal-hero { display: flex; align-items: center; justify-content: space-between; }
+.cal-hero-lbl { font-size: 13px; color: var(--ink-3); }
+.cal-hero-num { font-size: 40px; font-weight: 800; line-height: 1.15; color: var(--ink); }
+.cal-hero-num small { font-size: 14px; font-weight: 600; color: var(--ink-2); margin-left: 3px; }
+.cal-flag { width: 54px; height: 54px; flex: none; }
+.cal-banner { margin-top: 8px; border-radius: 12px; padding: 10px 14px; font-size: 13.5px; }
+.cal-banner.ok { background: var(--green-soft); color: #1f7a4d; }
+.cal-banner.warn { background: var(--amber-soft); color: #8a5a1e; }
+.cal-pills { display: flex; gap: 10px; margin: 10px 0 6px; }
+.cal-pill { flex: 1; border-radius: 12px; padding: 10px 14px; }
+.cal-pill b { display: block; font-size: 20px; line-height: 1.2; color: var(--ink); }
+.cal-pill span { font-size: 12px; color: var(--ink-3); }
+.cal-pill.pill-green { background: var(--green-soft); }
+.cal-pill.pill-amber { background: var(--amber-soft); }
 /* 日历月份切换 */
 .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .cal-title { font-weight: 600; font-size: 14px; color: var(--ink); }
