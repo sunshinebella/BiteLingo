@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.7";
+  const APP_VERSION = "1.0.8";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -158,6 +158,25 @@
     const log = getCheckinLog();
     if (!log.includes(t)) { log.push(t); log.sort(); save(KEY.checkinLog, log); }
   }
+  // 从打卡日志算历史最高连续天数（跨月统计，供贡献日历胶囊用）
+  function maxStreakFromLog(log) {
+    const sorted = [...new Set(log)].sort();
+    let best = 0, run = 0, prev = null;
+    for (const ds of sorted) {
+      run = (prev && dateAdd(ds, -1) === prev) ? run + 1 : 1;
+      prev = ds;
+      if (run > best) best = run;
+    }
+    return best;
+  }
+  // 连胜状态横幅文案
+  function streakBanner(streak, logLen, todayChecked) {
+    if (!logLen) return "日历还空着，从今天开始，种下第一个打卡吧";
+    if (streak >= 2 && todayChecked) return "连胜中，状态在线，继续保持";
+    if (streak === 1 && todayChecked) return "新的连胜已开启，出发～";
+    if (streak > 0 && !todayChecked) return "今天还没打卡，别让连胜断了";
+    return "连胜中断，不纠结过去，今天重新起航，出发～";
+  }
   function doCheckin() {
     const s = getStreak(), t = todayStr();
     if (s.last === t) { toast("今天已经打卡过啦"); return; }
@@ -238,8 +257,8 @@
     const grid = cells.map(d => {
       if (d === null) return '<div class="cal-cell empty"></div>';
       const ds = prefix + "-" + pad(d);
-      const hit = set.has(ds), isToday = ds === today;
-      return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + '">' + d + "</div>";
+      const hit = set.has(ds), isToday = ds === today, isFuture = ds > today;
+      return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + (isFuture ? " future" : "") + '">' + d + "</div>";
     }).join("");
     const monthCount = log.filter(x => x.indexOf(prefix) === 0).length;
     $("#home-cal-summary").textContent = "本月打卡 " + monthCount + " 天 · 累计 " + log.length + " 天";
@@ -581,21 +600,45 @@
     const grid = cells.map(d => {
       if (d === null) return '<div class="cal-cell empty"></div>';
       const ds = prefix + "-" + pad(d);
-      const hit = set.has(ds), isToday = ds === today;
-      return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + '">' + d + "</div>";
+      const hit = set.has(ds), isToday = ds === today, isFuture = ds > today;
+      return '<div class="cal-cell' + (hit ? " hit" : "") + (isToday ? " today" : "") + (isFuture ? " future" : "") + '">' + d + "</div>";
     }).join("");
     const monthCount = log.filter(x => x.indexOf(prefix) === 0).length;
     const isCur = y === ty && m === tm;
     const recent = log.slice(-6).reverse().map(x => x.slice(5)).join("、");
-    $("#checkin-summary").innerHTML = "累计打卡 <b>" + log.length + "</b> 天 · " + (isCur ? "本月" : esc(y + "年" + (m + 1) + "月")) + " <b>" + monthCount + "</b> 天 · 当前连续 <b>" + getStreak().count + "</b> 天";
+    const streak = getStreak();
+    const todayChecked = set.has(today);
+    // 摸鱼天数：该月内「今天之前已过去但没打卡」的天数（今天不算摸鱼，还没过完）
+    let missed = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = prefix + "-" + pad(d);
+      if (ds < today && !set.has(ds)) missed++;
+    }
+    // hero + 状态横幅（贡献日历风格）
+    const banner = streakBanner(streak.count, log.length, todayChecked);
+    $("#checkin-summary").innerHTML =
+      '<div class="cal-hero">' +
+        '<div><div class="cal-hero-lbl">当前连续打卡</div>' +
+          '<div class="cal-hero-num">' + streak.count + '<small> 天</small></div></div>' +
+        '<svg class="cal-flag" viewBox="0 0 24 24" aria-hidden="true">' +
+          '<path d="M7 3v18" stroke="#8a6b4d" stroke-width="2.4" stroke-linecap="round"/>' +
+          '<path d="M7 4h11l-3 3.5 3 3.5H7z" fill="#3bbf7a"/>' +
+        '</svg>' +
+      '</div>' +
+      '<div class="cal-banner ' + (streak.count > 0 ? "ok" : "warn") + '">' + esc(banner) + "</div>";
     $("#checkin-calendar").innerHTML =
       '<div class="cal-nav">' +
-        '<button id="cal-prev" class="cal-nav-btn" aria-label="上一月">‹</button>' +
         '<span class="cal-title">' + y + " 年 " + monthNames[m] + "</span>" +
-        '<button id="cal-next" class="cal-nav-btn" aria-label="下一月"' + (isCur ? " disabled" : "") + ">›</button>" +
+        '<span><button id="cal-prev" class="cal-nav-btn" aria-label="上一月">‹</button>' +
+        '<button id="cal-next" class="cal-nav-btn" aria-label="下一月"' + (isCur ? " disabled" : "") + ' style="margin-left:8px;">›</button></span>' +
+      "</div>" +
+      '<div class="cal-pills">' +
+        '<div class="cal-pill pill-green"><b>' + maxStreakFromLog(log) + '</b><span>最高连续打卡</span></div>' +
+        '<div class="cal-pill pill-amber"><b>' + missed + "</b><span>" + (isCur ? "本月" : "当月") + "摸鱼天数</span></div>" +
       "</div>" +
       '<div class="cal-grid cal-head-row">' + heads.map(h => "<div>" + h + "</div>").join("") + "</div>" +
-      '<div class="cal-grid">' + grid + "</div>";
+      '<div class="cal-grid">' + grid + "</div>" +
+      '<button id="cal-share" class="btn soft block" style="margin-top:12px;">晒一下：复制我的打卡战绩</button>';
     $("#cal-prev").onclick = () => {
       let ny = calView.y, nm = calView.m - 1;
       if (nm < 0) { nm = 11; ny--; }
@@ -608,6 +651,21 @@
       if (nm > 11) { nm = 0; ny++; }
       calView = { y: ny, m: nm };
       renderCheckinCalendar();
+    };
+    $("#cal-share").onclick = () => {
+      const period = isCur ? "本月" : y + " 年 " + (m + 1) + " 月";
+      const text = "我在「碎片学英语」连续打卡 " + streak.count + " 天，" + period + "打卡 " + monthCount + " 天，累计 " + log.length + " 天。";
+      const done = () => toast("战绩已复制，去粘贴晒一下吧");
+      const fallback = () => {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select();
+          document.execCommand("copy"); document.body.removeChild(ta); done();
+        } catch (e) { toast("复制失败，请手动截图分享"); }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
     };
     renderCheckinCurve(set, today);
     $("#checkin-recent").innerHTML = log.length
