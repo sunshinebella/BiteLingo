@@ -275,3 +275,19 @@ textarea:focus { outline: none; border-color: var(--brand); }
 
 .section-title { font-size: 13px; color: var(--ink-3); font-weight: 700; letter-spacing: .5px; margin: 4px 2px 8px; text-transform: uppercase; }
 .empty { text-align: center; color: var(--ink-3); padding: 30px 10px; }
+
+/* 流利训练（60/45/30 三连讲） */
+.flu-sent { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.flu-sent .en { font-size: 15.5px; font-weight: 600; color: var(--ink); line-height: 1.6; }
+.flu-sent .zh { font-size: 13px; color: var(--ink-2); margin-top: 5px; }
+.flu-round { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.flu-round > .row.between { align-items: center; }
+
+/* 词汇卡翻面：可直接说的语块（整块调用，非孤立单词） */
+.flashcard .back .chunk-box {
+  margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(255,255,255,.14); border: 1px dashed rgba(255,255,255,.4);
+}
+.flashcard .back .chunk-h { font-size: 12px; opacity: .8; letter-spacing: .3px; }
+.flashcard .back .chunk-line { margin-top: 5px; font-size: 15px; font-weight: 600; line-height: 1.55; color: #ffe9a8; }
+.flashcard .back .chunk-zh { margin-top: 3px; font-size: 13px; opacity: .85; }

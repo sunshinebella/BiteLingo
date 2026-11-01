@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.14";
+  const APP_VERSION = "1.0.15";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -84,12 +84,21 @@
     resolveVoice();
     speechSynthesis.onvoiceschanged = () => { resolveVoice(); if (typeof renderVoiceCard === "function") renderVoiceCard(); };
   }
+  // 语速阶梯：慢速便于听清音节，快速逼近真实会议语速（真实语音流暴露）
+  const SPEAK_RATES = { slow: 0.75, normal: 0.9, fast: 1.15 };
+  function getRate() { return load(KEY.pref, {}).rate || "normal"; }
+  function rateVal() { return SPEAK_RATES[getRate()] || 0.9; }
+  function setRate(k) {
+    if (!SPEAK_RATES[k]) return;
+    const p = load(KEY.pref, {}); p.rate = k; save(KEY.pref, p);
+    if (typeof renderRateSwitch === "function") renderRateSwitch();
+  }
   // 构造一条朗读（不取消其他语音，供连播链复用）
   function speakRaw(text) {
     const st = getVoiceState();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = st.accent || "en-US";
-    u.rate = 0.9; u.pitch = 1; u.volume = 1;
+    u.rate = rateVal(); u.pitch = 1; u.volume = 1;
     const v = resolveVoice();
     if (v) u.voice = v;
     return u;
@@ -305,6 +314,15 @@
     if (exSpeak) exSpeak.onclick = () => speak(v.ex);
     // 点句中任意词单独朗读
     $$("#v-ex .w-unit[data-w]").forEach(el => el.onclick = () => speak(el.dataset.w));
+    // 语块区：整块朗读 + 直接带入流利训练（单词 → 语块 → 说得快，链路打通）
+    const ck = chunkFor(v), ckSpeak = $("#v-chunk-speak"), ckFlu = $("#v-chunk-flu");
+    if (ckSpeak && ck) ckSpeak.onclick = () => speak(ck.en);
+    if (ckFlu && ck) ckFlu.onclick = () => {
+      flu.en = ck.en; flu.zh = ck.zh;
+      go("listen"); // go 内部会 renderListen → renderFluency，保留带入的句子
+      setTimeout(() => { const card = $("#flu-body"); if (card) card.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
+      toast("已带入流利训练，点「听标准音」后开讲");
+    };
     // 音标显示偏好（默认开，可一键收起，记住选择）
     const exLine = $("#v-ex"), ipaBtn = $("#v-ipa-toggle");
     if (exLine && ipaBtn) {
@@ -319,8 +337,21 @@
     $("#v-no").onclick = () => { updateVocab(v.word, false); setDailyIfEnough("vocab", false); afterVocab(v.word, false); };
     $("#v-yes").onclick = () => { updateVocab(v.word, true); afterVocab(v.word, true); };
   }
-  // 渲染单张词汇卡 banner：单词 + 音标 + 中文释义（正面），翻面后显示释义/例句
+  // 词汇卡的「可直接说」语块：优先复用 20 句跟读句（真实会议句），无匹配则用卡片自带的 chunk
+  // 语块 = 可整块调用的完整句式，不是孤立单词——这是能直接搬进会议的最小单位
+  function chunkFor(v) {
+    const key = String(v.word || "").toLowerCase().split(/[- ]/)[0];
+    if (!key) return null;
+    let re;
+    try { re = new RegExp("\\b" + key.replace(/[-]/g, "[- ]?") + "(s|es|d|ed|ing)?\\b", "i"); } catch (e) { re = null; }
+    const m = re && SEED.shadow.find(s => re.test(s.en));
+    if (m) return { en: m.en, zh: m.zh };
+    if (v.chunk) return { en: v.chunk, zh: v.chunkZh || "" };
+    return null;
+  }
+  // 渲染单张词汇卡 banner：单词 + 音标 + 中文释义（正面），翻面后显示释义/例句/语块
   function renderFlashcard(v) {
+    const ck = chunkFor(v);
     return `
       <div class="flashcard" id="flash">
         <div class="word">${esc(v.word)}</div>
@@ -334,6 +365,15 @@
             <button class="btn soft" id="v-ex-speak">🔊 读例句</button>
             ${v.ex ? `<button class="btn ghost" id="v-ipa-toggle">隐藏音标</button>` : ""}
           </div>
+          ${ck ? `<div class="chunk-box">
+            <div class="chunk-h">可直接说（整块调用）</div>
+            <div class="chunk-line">${esc(ck.en)}</div>
+            <div class="chunk-zh">${esc(ck.zh)}</div>
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="btn soft" id="v-chunk-speak">🔊 读语块</button>
+              <button class="btn ghost" id="v-chunk-flu">练流利</button>
+            </div>
+          </div>` : ""}
           <span class="cat">${esc(v.cat)}</span>
         </div>
       </div>
@@ -415,8 +455,104 @@
     if (tryBtn) tryBtn.onclick = () => speak("Could you walk me through the test results?");
   }
 
+  // 语速阶梯切换器：慢(听清音节) / 标准 / 快(逼近真实会议语速)，选择会被记住
+  function renderRateSwitch() {
+    const box = $("#rate-switch"); if (!box) return;
+    const cur = getRate();
+    const opts = [["slow", "慢 0.75×"], ["normal", "标准 0.9×"], ["fast", "快 1.15×"]];
+    box.innerHTML = opts.map(([k, label]) =>
+      `<button class="tag ${cur === k ? "amber" : "gray"}" data-rate-k="${k}" style="cursor:pointer;border:none;">${label}</button>`).join("");
+    $$("#rate-switch [data-rate-k]").forEach(b => b.onclick = () => setRate(b.dataset.rateK));
+  }
+
+  // ---------- 流利训练（4/3/2 精简版：同一句讲三遍 60→45→30 秒）----------
+  // 依据：Arevart & Nation 1991（语速 +21.5%、犹豫 -22%）；De Jong & Perfetti 2011（重复组有长期增益）
+  // 练的是「说得快且顺」，不记发音评分，所以三个槽位不弹自评（由 showSelfRate 的 data-flu 拦截）
+  const FLU_SECS = [60, 45, 30];
+  let flu = { en: "", zh: "", timer: null, left: 0, running: 0 };
+  function fluList() {
+    return listenCat === "全部" ? SEED.shadow : SEED.shadow.filter(s => s.cat === listenCat);
+  }
+  function renderFluency() {
+    const body = $("#flu-body"); if (!body) return;
+    const list = fluList();
+    // 只在未指定时取当前分类首句；已从词汇卡带入的句子要保留（可能不属于当前筛选分类）
+    if (!flu.en) { const s = list[0] || SEED.shadow[0]; flu.en = s.en; flu.zh = s.zh; }
+    body.innerHTML = `
+      <div class="flu-sent">
+        <div class="en">${esc(flu.en)}</div>
+        <div class="zh">${esc(flu.zh)}</div>
+      </div>
+      <div class="row wrap" style="margin-top:8px;">
+        <button class="btn soft" id="flu-listen">▶ 听标准音</button>
+        <span class="muted" id="flu-timer" style="margin-left:auto;"></span>
+      </div>
+      ${FLU_SECS.map((sec, k) => {
+        const n = k + 1;
+        return `<div class="flu-round">
+          <div class="row between">
+            <span>第 ${n} 遍 · ${sec} 秒<span class="tag green" id="flu-done-${n}" style="display:none;margin-left:6px;">已完成</span></span>
+            <button class="btn" id="flu-btn-${n}">开始第 ${n} 遍</button>
+          </div>
+          <div id="rec-result-f${n}" data-flu="1"></div>
+        </div>`;
+      }).join("")}
+      <div class="muted" id="flu-tip" style="margin-top:10px;"></div>`;
+    $("#flu-listen").onclick = () => { speak(flu.en); markListened(); };
+    FLU_SECS.forEach((sec, k) => {
+      const n = k + 1, btn = $("#flu-btn-" + n);
+      btn.onclick = () => {
+        if (flu.running === n) { fluStopRound(n); return; }
+        if (flu.running) { toast("第 " + flu.running + " 遍还没结束"); return; }
+        if (rec.active) { toast("请先结束当前录音"); return; }
+        fluStartRound(n);
+      };
+    });
+    updateFlu();
+  }
+  function updateFlu() {
+    FLU_SECS.forEach((sec, k) => {
+      const n = k + 1, btn = $("#flu-btn-" + n); if (!btn) return;
+      btn.textContent = flu.running === n ? "讲述中 " + flu.left + "s" : "开始第 " + n + " 遍";
+      btn.classList.toggle("green", flu.running === n);
+    });
+    const t = $("#flu-timer");
+    if (t) t.textContent = flu.running ? "第 " + flu.running + " 遍 · 剩余 " + flu.left + " 秒" : "";
+    let allDone = true;
+    FLU_SECS.forEach((sec, k) => {
+      const n = k + 1, box = $("#rec-result-f" + n), tag = $("#flu-done-" + n);
+      const ok = !!(box && box.dataset.valid === "1");
+      if (!ok) allDone = false;
+      if (tag) tag.style.display = ok ? "" : "none";
+    });
+    const tip = $("#flu-tip");
+    if (tip) tip.innerHTML = allDone
+      ? "三遍完成 ✓ 依次回听：<b>一遍比一遍快、卡顿更少</b>就是见效。流利度训练不记发音评分。"
+      : "";
+  }
+  function fluStartRound(n) {
+    const sec = FLU_SECS[n - 1], btn = $("#flu-btn-" + n);
+    flu.running = n; flu.left = sec;
+    startRec("f" + n, flu.en, btn);
+    updateFlu();
+    flu.timer = setInterval(() => {
+      flu.left--;
+      if (flu.left <= 0) { fluStopRound(n); toast("第 " + n + " 遍时间到，回听一下"); return; }
+      updateFlu();
+    }, 1000);
+  }
+  function fluStopRound(n) {
+    if (flu.timer) { clearInterval(flu.timer); flu.timer = null; }
+    const btn = $("#flu-btn-" + n);
+    if (rec.active) stopRec(btn);
+    flu.running = 0; flu.left = 0;
+    updateFlu();
+    setTimeout(updateFlu, 1600); // 等有效性分析收尾后再刷新「已完成」标记
+  }
+
   function renderListen() {
     renderVoiceCard();
+    renderRateSwitch();
     const cats = ["全部", ...new Set(SEED.shadow.map(s => s.cat))];
     $("#listen-cats").innerHTML = cats.map(c =>
       `<button class="tag ${c === listenCat ? "amber" : "gray"}" data-cat="${esc(c)}" style="cursor:pointer;border:none;">${esc(c)}</button>`).join("");
@@ -429,6 +565,7 @@
         <div class="ctr">
           <button class="icon-btn" data-spk="${i}">▶</button>
           <button class="btn soft" data-spk="${i}" style="padding:6px 14px;">再听一次</button>
+          <button class="btn soft" data-flu="${i}" style="padding:6px 14px;">练流利</button>
           <button class="btn soft rec-btn" data-rec="${i}" data-en="${esc(s.en)}" style="padding:6px 14px;margin-left:auto;">录音评测</button>
         </div>
         <div id="rec-result-${i}"></div>
@@ -436,6 +573,15 @@
     $$("#listen-box [data-spk]").forEach(b => b.onclick = () => {
       speak(list[+b.dataset.spk].en);
       markListened();
+    });
+    $$("#listen-box [data-flu]").forEach(b => b.onclick = () => {
+      if (flu.running) { toast("流利训练进行中，请先结束当前这一遍"); return; }
+      const s = list[+b.dataset.flu];
+      flu.en = s.en; flu.zh = s.zh;
+      renderFluency();
+      const card = $("#flu-body");
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      toast("已设为流利训练句");
     });
     $$("#listen-box [data-rec]").forEach(b => b.onclick = () => {
       const i = +b.dataset.rec;
@@ -451,6 +597,7 @@
       markListened();
     };
     renderMicStatus();
+    renderFluency();
     const stat = $("#listen-speak-stat");
     if (stat) stat.textContent = `口语评测进度：${speakCount()} / ${SEED.shadow.length} 句已打分`;
   }
@@ -874,7 +1021,8 @@
     if (au) box.appendChild(au);
   }
   function showSelfRate(i, en) {
-    const box = $("#rec-result-" + i); if (!box || box.dataset.scored || box.dataset.valid === "0") return;
+    // 流利训练槽（data-flu）不参与评分：那练的是流利度，不是发音准确度
+    const box = $("#rec-result-" + i); if (!box || box.dataset.scored || box.dataset.valid === "0" || box.dataset.flu === "1") return;
     const au = box.querySelector("audio"); // 保留录音回放，别被 innerHTML 覆盖掉
     // 诚实区分「AI 识别评分」和「自评」：无识别环境明确告知，避免自评被误当发音评分
     const tip = SR
@@ -1085,6 +1233,8 @@
   function go(view) {
     // 切走页面时停止所有语音/连播/录音，避免后台继续播放
     if (playChain) playChain(); else if (HAS_TTS) speechSynthesis.cancel();
+    if (flu.timer) { clearInterval(flu.timer); flu.timer = null; } // 离开跟读页停掉流利倒计时
+    flu.running = 0; flu.left = 0;
     if (rec.active && rec.btn) stopRec(rec.btn);
     views.forEach(v => $("#view-" + v).classList.toggle("active", v === view));
     $$("#nav button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
