@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.12";
+  const APP_VERSION = "1.0.13";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -132,15 +132,19 @@
     SEED.phonetics || {}
   );
   function stripIPA(p) { return String(p || "").replace(/^\/|\/$/g, ""); }
-  // 整句音标行：按词切割成块（上音标下原词），词典缺词只显示原词（灰）；点块可单独朗读该词
-  function ipaLine(text) {
+  // 例句 + 逐词音标：按词切成单元（单词在上、音标在下），音标天然与对应单词对齐；
+  // 数字保留显示但无音标；词典缺词的实词只显示单词、无音标；点单元可单独朗读该词
+  function sentenceWithIPA(text, target) {
     if (!text) return "";
-    return esc(text).replace(/([A-Za-z][A-Za-z'’-]*|[^\sA-Za-z]+)/g, (tok, _, __, str) => {
-      if (!/^[A-Za-z]/.test(tok)) return ""; // 标点/数字：分块视图里省略
-      const p = PHON[tok.toLowerCase()];
-      return p
-        ? `<span class="ipa-item" data-w="${esc(tok)}"><i>${esc(stripIPA(p))}</i><b>${tok}</b></span>`
-        : `<span class="ipa-item miss"><b>${tok}</b></span>`;
+    const tgt = String(target || "").toLowerCase();
+    return esc(text).replace(/([A-Za-z][A-Za-z'’-]*|[0-9]+|[^\sA-Za-z0-9]+|\s+)/g, (tok) => {
+      if (/^\s+$/.test(tok)) return tok;                                  // 原样保留空格，保证可正常换行
+      if (!/^[A-Za-z0-9]/.test(tok)) return `<span class="w-punc">${tok}</span>`;
+      const isWord = /^[A-Za-z]/.test(tok);
+      const p = isWord ? PHON[tok.toLowerCase()] : null;
+      const hl = isWord && tgt && tok.toLowerCase() === tgt ? " target" : "";
+      const miss = isWord && !p ? " miss" : "";
+      return `<span class="w-unit${hl}${miss}" data-w="${esc(tok)}"><b>${tok}</b><i>${p ? esc(stripIPA(p)) : "&nbsp;"}</i></span>`;
     });
   }
   function renderWithIPA(text) {
@@ -295,20 +299,20 @@
     box.innerHTML = renderFlashcard(v);
     const flash = $("#flash");
     const toggle = () => { flipState = !flipState; $("#flash-back").style.display = flipState ? "block" : "none"; };
-    // 背面里的可交互元素（点词查音标、音标块发音、按钮）不触发翻面
-    flash.onclick = (ev) => { if (ev.target.closest("button, .word-tap, .ipa-item")) return; toggle(); };
+    // 背面里的可交互元素（词单元发音、按钮）不触发翻面
+    flash.onclick = (ev) => { if (ev.target.closest("button, .w-unit")) return; toggle(); };
     $("#v-flip").onclick = toggle;
     const exSpeak = $("#v-ex-speak");
     if (exSpeak) exSpeak.onclick = () => speak(v.ex);
-    // 点音标块单独朗读该词
-    $$("#v-ipa .ipa-item[data-w]").forEach(el => el.onclick = () => speak(el.dataset.w));
-    // 整句音标显示偏好（默认开，可一键收起，记住选择）
-    const ipaBox = $("#v-ipa"), ipaBtn = $("#v-ipa-toggle");
-    if (ipaBox && ipaBtn) {
-      const apply = on => { ipaBox.style.display = on ? "block" : "none"; ipaBtn.textContent = on ? "隐藏音标" : "显示音标"; };
+    // 点句中任意词单独朗读
+    $$("#v-ex .w-unit[data-w]").forEach(el => el.onclick = () => speak(el.dataset.w));
+    // 音标显示偏好（默认开，可一键收起，记住选择）
+    const exLine = $("#v-ex"), ipaBtn = $("#v-ipa-toggle");
+    if (exLine && ipaBtn) {
+      const apply = on => { exLine.classList.toggle("hide-ipa", !on); ipaBtn.textContent = on ? "隐藏音标" : "显示音标"; };
       apply(load(KEY.pref, {}).showIpa !== false);
       ipaBtn.onclick = () => {
-        const next = ipaBox.style.display === "none";
+        const next = exLine.classList.contains("hide-ipa");
         apply(next);
         const p = load(KEY.pref, {}); p.showIpa = next; save(KEY.pref, p);
       };
@@ -325,8 +329,7 @@
         <div class="zh-banner">${esc(v.meaning || "")}</div>
         <div class="back" id="flash-back" style="display:none;">
           <div>${esc(v.meaning)}</div>
-          <div class="ex-line">${richText(v.ex, [v.word])}</div>
-          ${v.ex ? `<div class="ipa-line" id="v-ipa">${ipaLine(v.ex)}</div>` : ""}
+          ${v.ex ? `<div class="ex-line" id="v-ex">${sentenceWithIPA(v.ex, v.word)}</div>` : ""}
           <div class="ex-zh">${esc(v.zh)}</div>
           <div class="btn-row" style="margin-top:10px;">
             <button class="btn soft" id="v-ex-speak">🔊 读例句</button>
