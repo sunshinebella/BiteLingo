@@ -193,6 +193,38 @@ const SEED = {
     "approved": "/əˈpruːvd/", "discuss": "/dɪˈskʌs/", "found": "/faʊnd/", "morning": "/ˈmɔːrnɪŋ/",
     "higher": "/ˈhaɪər/", "delayed": "/dɪˈleɪd/", "minutes": "/ˈmɪnɪts/", "twelve": "/twelv/",
     "fewer": "/ˈfjuːər/", "faster": "/ˈfæstər/", "triage": "/ˈtriːɑːʒ/",
-    "flaky": "/ˈfleɪki/", "edge": "/edʒ/", "action": "/ˈækʃən/", "circle": "/ˈsɜːrkl/", "dive": "/daɪv/", "contract": "/ˈkɑːntrækt/"
+    "flaky": "/ˈfleɪki/", "edge": "/edʒ/", "action": "/ˈækʃən/", "circle": "/ˈsɜːrkl/", "dive": "/daɪv/", "contract": "/ˈkɑːntrækt/",
+
+    // 例句中出现的高频虚词 / 常用词：补齐后整句音标可连续跟读
+    "the": "/ðə/", "we": "/wiː/", "is": "/ɪz/", "a": "/ə/", "an": "/ən/", "on": "/ɒn/",
+    "for": "/fɔː/", "this": "/ðɪs/", "to": "/tuː/", "you": "/juː/", "by": "/baɪ/",
+    "in": "/ɪn/", "it": "/ɪt/", "and": "/ænd/", "at": "/æt/", "up": "/ʌp/",
+    "as": "/æz/", "not": "/nɒt/", "so": "/səʊ/", "can": "/kæn/", "do": "/duː/",
+    "are": "/ɑː/", "was": "/wɒz/", "has": "/hæz/", "have": "/hæv/", "need": "/niːd/",
+    "let's": "/lets/", "i'll": "/aɪl/", "we're": "/wɪə/", "wasn't": "/ˈwɒznt/", "don't": "/dəʊnt/",
+    "api": "/ˌeɪ piː ˈaɪ/", "ci": "/ˌsiː ˈaɪ/", "sla": "/ˌes el ˈeɪ/", "qa": "/ˌkjuː ˈeɪ/",
+    "am": "/ˌeɪ ˈem/", "skus": "/ˈskjuːz/", "sev": "/sev/",
+
+    "daily": "/ˈdeɪli/", "any": "/ˈeni/", "blockers": "/ˈblɒkəz/", "today's": "/təˈdeɪz/",
+    "release": "/rɪˈliːs/", "take": "/teɪk/", "item": "/ˈaɪtəm/", "follow": "/ˈfɒləʊ/",
+    "sprint": "/sprɪnt/", "priorities": "/praɪˈɒrətiz/", "send": "/send/", "after": "/ˈɑːftə/",
+    "call": "/kɔːl/", "task": "/tɑːsk/", "back": "/bæk/", "offline": "/ˌɒfˈlaɪn/",
+    "into": "/ˈɪntə/", "flow": "/fləʊ/", "drop-off": "/ˈdrɒp ɒf/", "latency": "/ˈleɪtənsi/",
+    "spiked": "/spaɪkt/", "during": "/ˈdjʊərɪŋ/", "flash": "/flæʃ/", "sale": "/seɪl/",
+    "abandonment": "/əˈbændənmənt/", "rate": "/reɪt/", "too": "/tuː/", "high": "/haɪ/",
+    "improved": "/ɪmˈpruːvd/", "how": "/haʊ/", "many": "/ˈmeni/", "affected": "/əˈfektɪd/",
+    "breached": "/briːtʃt/", "failed": "/feɪld/", "silently": "/ˈsaɪləntli/",
+    "discount": "/ˈdɪskaʊnt/", "applied": "/əˈplaɪd/", "lead": "/liːd/", "time": "/taɪm/",
+    "report": "/rɪˈpɔːt/", "days": "/deɪz/", "hurt": "/hɜːt/", "trust": "/trʌst/",
+    "missed": "/mɪst/", "case": "/keɪs/", "pagination": "/ˌpædʒɪˈneɪʃn/",
+    "flagged": "/flæɡd/", "coverage": "/ˈkʌvərɪdʒ/", "order": "/ˈɔːdə/",
+    "changed": "/tʃeɪndʒd/", "without": "/wɪˈðaʊt/", "notice": "/ˈnəʊtɪs/",
+    "payment": "/ˈpeɪmənt/", "gateway": "/ˈɡeɪtweɪ/", "red": "/red/", "again": "/əˈɡen/",
+    "doing": "/ˈduːɪŋ/", "first": "/fɜːst/", "triggered": "/ˈtrɪɡəd/",
+    "immediate": "/ɪˈmiːdiət/", "scheduled": "/ˈʃedjuːld/", "thursday": "/ˈθɜːzdeɪ/",
+    "verified": "/ˈverɪfaɪd/", "prod": "/prɒd/", "looks": "/lʊks/", "far": "/fɑː/",
+    "shipped": "/ʃɪpt/", "bug": "/bʌɡ/", "declared": "/dɪˈkleəd/", "due": "/djuː/",
+    "before": "/bɪˈfɔː/", "tomorrow": "/təˈmɒrəʊ/", "friday": "/ˈfraɪdeɪ/", "tests": "/tests/",
+    "deep": "/diːp/", "sev-": "/sev/"
   }
 };
