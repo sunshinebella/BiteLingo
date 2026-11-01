@@ -6,40 +6,40 @@ const SEED = {
   // ===== 词汇：四类，覆盖会议/业务/技术QA/发布 =====
   vocab: [
     // 会议沟通
-    { word: "standup", phonetic: "/ˈstændʌp/", pos: "n.", cat: "会议沟通", meaning: "站会（每日短时同步会）", ex: "We have a daily standup at 9 AM.", zh: "我们每天早上 9 点开站会。" },
+    { word: "standup", phonetic: "/ˈstændʌp/", pos: "n.", cat: "会议沟通", meaning: "站会（每日短时同步会）", ex: "We have a daily standup at 9 AM.", zh: "我们每天早上 9 点开站会。", chunk: "I'll bring this up in tomorrow's standup.", chunkZh: "我明天站会上提这个。" },
     { word: "sync", phonetic: "/sɪŋk/", pos: "n./v.", cat: "会议沟通", meaning: "对齐、同步沟通", ex: "Let's sync on the API contract tomorrow.", zh: "我们明天对齐一下 API 契约。" },
-    { word: "blocker", phonetic: "/ˈblɒkər/", pos: "n.", cat: "会议沟通", meaning: "阻碍项、卡点", ex: "Any blockers for today's release?", zh: "今天的发布有什么卡点吗？" },
+    { word: "blocker", phonetic: "/ˈblɒkər/", pos: "n.", cat: "会议沟通", meaning: "阻碍项、卡点", ex: "Any blockers for today's release?", zh: "今天的发布有什么卡点吗？", chunk: "I'm blocked on the payment API right now.", chunkZh: "我现在卡在支付接口上。" },
     { word: "action item", phonetic: "/ˈækʃən ˈaɪtəm/", pos: "n.", cat: "会议沟通", meaning: "行动项、待办", ex: "I'll take this action item and follow up.", zh: "这个行动项我来跟。" },
-    { word: "retrospective", phonetic: "/ˌretrəˈspektɪv/", pos: "n.", cat: "会议沟通", meaning: "复盘会（回顾会）", ex: "The sprint retrospective is on Friday.", zh: "冲刺复盘会在周五。" },
+    { word: "retrospective", phonetic: "/ˌretrəˈspektɪv/", pos: "n.", cat: "会议沟通", meaning: "复盘会（回顾会）", ex: "The sprint retrospective is on Friday.", zh: "冲刺复盘会在周五。", chunk: "Let's save this for the retro.", chunkZh: "这个留到复盘会再说。" },
     { word: "align", phonetic: "/əˈlaɪn/", pos: "v.", cat: "会议沟通", meaning: "对齐（目标/认知）", ex: "We need to align on priorities.", zh: "我们需要对一下优先级。" },
     { word: "follow-up", phonetic: "/ˈfɒləʊ ʌp/", pos: "n.", cat: "会议沟通", meaning: "跟进", ex: "I'll send a follow-up after the call.", zh: "会后我会发跟进。" },
     { word: "bandwidth", phonetic: "/ˈbændwɪdθ/", pos: "n.", cat: "会议沟通", meaning: "（时间/精力）余量", ex: "Do you have bandwidth for this task?", zh: "你这边有精力做这个吗？" },
     { word: "circle back", phonetic: "/ˈsɜːkl bæk/", pos: "phr.", cat: "会议沟通", meaning: "回头再谈、稍后跟进", ex: "Let's circle back to this offline.", zh: "这个我们线下再回头聊。" },
-    { word: "deep dive", phonetic: "/diːp daɪv/", pos: "n.", cat: "会议沟通", meaning: "深入剖析", ex: "We need a deep dive into the flaky tests.", zh: "我们需要深挖一下不稳定测试。" },
+    { word: "deep dive", phonetic: "/diːp daɪv/", pos: "n.", cat: "会议沟通", meaning: "深入剖析", ex: "We need a deep dive into the flaky tests.", zh: "我们需要深挖一下不稳定测试。", chunk: "We need a deep dive on the root cause.", chunkZh: "我们需要深挖根因。" },
 
     // 电商业务
-    { word: "onboarding", phonetic: "/ˈɒnbɔːdɪŋ/", pos: "n.", cat: "电商业务", meaning: "用户/商家入驻引导", ex: "The onboarding flow has a drop-off.", zh: "入驻流程有流失。" },
+    { word: "onboarding", phonetic: "/ˈɒnbɔːdɪŋ/", pos: "n.", cat: "电商业务", meaning: "用户/商家入驻引导", ex: "The onboarding flow has a drop-off.", zh: "入驻流程有流失。", chunk: "The onboarding flow is broken for new users.", chunkZh: "新用户的注册引导流程坏了。" },
     { word: "checkout", phonetic: "/ˈtʃekaʊt/", pos: "n.", cat: "电商业务", meaning: "结算（下单支付环节）", ex: "Checkout latency spiked during flash sale.", zh: "大促时结算延迟飙升。" },
     { word: "cart", phonetic: "/kɑːt/", pos: "n.", cat: "电商业务", meaning: "购物车", ex: "Cart abandonment rate is too high.", zh: "购物车放弃率太高了。" },
-    { word: "conversion", phonetic: "/kənˈvɜːʃn/", pos: "n.", cat: "电商业务", meaning: "转化（率）", ex: "We improved conversion by 8%.", zh: "我们把转化率提升了 8%。" },
+    { word: "conversion", phonetic: "/kənˈvɜːʃn/", pos: "n.", cat: "电商业务", meaning: "转化（率）", ex: "We improved conversion by 8%.", zh: "我们把转化率提升了 8%。", chunk: "Conversion dropped after the last release.", chunkZh: "上次发布后转化率掉了。" },
     { word: "SKU", phonetic: "/ˈskjuː/", pos: "n.", cat: "电商业务", meaning: "库存量单位（商品编码）", ex: "How many SKUs are affected?", zh: "影响多少个 SKU？" },
     { word: "inventory", phonetic: "/ˈɪnvəntri/", pos: "n.", cat: "电商业务", meaning: "库存", ex: "Inventory sync is delayed by 5 minutes.", zh: "库存同步延迟了 5 分钟。" },
     { word: "fulfillment", phonetic: "/fʊlˈfɪlmənt/", pos: "n.", cat: "电商业务", meaning: "履约（发货配送）", ex: "Fulfillment SLA was breached.", zh: "履约 SLA 被突破了。" },
-    { word: "refund", phonetic: "/ˈriːfʌnd/", pos: "n./v.", cat: "电商业务", meaning: "退款", ex: "The refund pipeline failed silently.", zh: "退款链路静默失败了。" },
+    { word: "refund", phonetic: "/ˈriːfʌnd/", pos: "n./v.", cat: "电商业务", meaning: "退款", ex: "The refund pipeline failed silently.", zh: "退款链路静默失败了。", chunk: "The refund wasn't issued to the customer.", chunkZh: "退款没退给客户。" },
     { word: "coupon", phonetic: "/ˈkuːpɒn/", cat: "电商业务", pos: "n.", meaning: "优惠券", ex: "Coupon discount wasn't applied at checkout.", zh: "结算时优惠券没生效。" },
-    { word: "lead time", phonetic: "/liːd taɪm/", pos: "n.", cat: "电商业务", meaning: "前置时长、交付周期", ex: "Lead time for this report is 2 days.", zh: "这份报告的交付周期是 2 天。" },
+    { word: "lead time", phonetic: "/liːd taɪm/", pos: "n.", cat: "电商业务", meaning: "前置时长、交付周期", ex: "Lead time for this report is 2 days.", zh: "这份报告的交付周期是 2 天。", chunk: "Lead time is about five business days.", chunkZh: "交付周期大概五个工作日。" },
 
     // 技术QA
     { word: "flaky test", phonetic: "/ˈfleɪki test/", pos: "n.", cat: "技术QA", meaning: "不稳定/偶发失败测试", ex: "Flaky tests hurt CI trust.", zh: "不稳定测试损害 CI 可信度。" },
     { word: "regression", phonetic: "/rɪˈɡreʃn/", pos: "n.", cat: "技术QA", meaning: "回归（缺陷复现/功能退化）", ex: "This is a checkout regression.", zh: "这是结算的回归缺陷。" },
-    { word: "edge case", phonetic: "/edʒ keɪs/", pos: "n.", cat: "技术QA", meaning: "边界/极端场景", ex: "We missed an edge case in pagination.", zh: "我们漏了分页的一个边界场景。" },
+    { word: "edge case", phonetic: "/edʒ keɪs/", pos: "n.", cat: "技术QA", meaning: "边界/极端场景", ex: "We missed an edge case in pagination.", zh: "我们漏了分页的一个边界场景。", chunk: "That's an edge case we didn't cover.", chunkZh: "那是个我们没覆盖的边界场景。" },
     { word: "reproduce", phonetic: "/ˌriːprəˈdjuːs/", pos: "v.", cat: "技术QA", meaning: "复现（缺陷）", ex: "Can you reproduce it on staging?", zh: "你能在预发环境复现吗？" },
-    { word: "severity", phonetic: "/sɪˈverəti/", pos: "n.", cat: "技术QA", meaning: "严重级别", ex: "We flagged it as Sev-1.", zh: "我们把它标为一级故障。" },
+    { word: "severity", phonetic: "/sɪˈverəti/", pos: "n.", cat: "技术QA", meaning: "严重级别", ex: "We flagged it as Sev-1.", zh: "我们把它标为一级故障。", chunk: "We need to confirm the severity before triage.", chunkZh: "定级前先确认严重程度。" },
     { word: "test coverage", phonetic: "/test ˈkʌvərɪdʒ/", pos: "n.", cat: "技术QA", meaning: "测试覆盖率", ex: "Coverage on the order API is 82%.", zh: "订单接口覆盖率 82%。" },
     { word: "API contract", phonetic: "/ˈeɪpiːaɪ ˈkɒntrækt/", pos: "n.", cat: "技术QA", meaning: "接口契约", ex: "The API contract changed without notice.", zh: "接口契约悄悄改了。" },
-    { word: "stub", phonetic: "/stʌb/", pos: "n.", cat: "技术QA", meaning: "打桩（替身响应）", ex: "We stub the payment gateway in CI.", zh: "CI 里我们对支付网关打桩。" },
-    { word: "mock", phonetic: "/mɒk/", pos: "n./v.", cat: "技术QA", meaning: "Mock（模拟依赖）", ex: "Mock the inventory service.", zh: "把库存服务 mock 掉。" },
-    { word: "pipeline", phonetic: "/ˈpaɪplaɪn/", pos: "n.", cat: "技术QA", meaning: "流水线（CI/CD）", ex: "The pipeline is red again.", zh: "流水线又红了。" },
+    { word: "stub", phonetic: "/stʌb/", pos: "n.", cat: "技术QA", meaning: "打桩（替身响应）", ex: "We stub the payment gateway in CI.", zh: "CI 里我们对支付网关打桩。", chunk: "We're using a stub for the payment gateway.", chunkZh: "支付网关我们用的桩。" },
+    { word: "mock", phonetic: "/mɒk/", pos: "n./v.", cat: "技术QA", meaning: "Mock（模拟依赖）", ex: "Mock the inventory service.", zh: "把库存服务 mock 掉。", chunk: "Let me mock the response in the test.", chunkZh: "我在测试里把响应 mock 掉。" },
+    { word: "pipeline", phonetic: "/ˈpaɪplaɪn/", pos: "n.", cat: "技术QA", meaning: "流水线（CI/CD）", ex: "The pipeline is red again.", zh: "流水线又红了。", chunk: "The CI pipeline failed on the last commit.", chunkZh: "CI 流水线在最后一次提交上挂了。" },
 
     // 发布部署
     { word: "rollout", phonetic: "/ˈrəʊlaʊt/", pos: "n.", cat: "发布部署", meaning: "灰度/逐步发布", ex: "We're doing a 5% rollout first.", zh: "我们先做 5% 灰度。" },
@@ -47,10 +47,10 @@ const SEED = {
     { word: "go-live", phonetic: "/ɡəʊ laɪv/", pos: "n.", cat: "发布部署", meaning: "上线、正式生效", ex: "Go-live is scheduled for Thursday.", zh: "上线定在周四。" },
     { word: "staging", phonetic: "/ˈsteɪdʒɪŋ/", pos: "n.", cat: "发布部署", meaning: "预发/准生产环境", ex: "Verified on staging, not prod.", zh: "在预发验证过，不是生产。" },
     { word: "canary", phonetic: "/kəˈneəri/", pos: "n.", cat: "发布部署", meaning: "金丝雀发布", ex: "Canary looks healthy so far.", zh: "金丝雀目前看着健康。" },
-    { word: "hotfix", phonetic: "/ˈhɒtfɪks/", pos: "n.", cat: "发布部署", meaning: "热修复", ex: "We shipped a hotfix for the coupon bug.", zh: "我们发了个热修修优惠券 bug。" },
-    { word: "deploy", phonetic: "/dɪˈplɔɪ/", pos: "v.", cat: "发布部署", meaning: "部署", ex: "Don't deploy on Friday.", zh: "周五别部署。" },
-    { word: "incident", phonetic: "/ˈɪnsɪdənt/", pos: "n.", cat: "发布部署", meaning: "线上故障/事件", ex: "We declared a Sev-2 incident.", zh: "我们定级为二级故障。" },
-    { word: "postmortem", phonetic: "/ˌpəʊstˈmɔːtəm/", pos: "n.", cat: "发布部署", meaning: "事故复盘（尸检）", ex: "The postmortem is due tomorrow.", zh: "事故复盘明天要出。" },
+    { word: "hotfix", phonetic: "/ˈhɒtfɪks/", pos: "n.", cat: "发布部署", meaning: "热修复", ex: "We shipped a hotfix for the coupon bug.", zh: "我们发了个热修修优惠券 bug。", chunk: "We'll ship a hotfix tonight.", chunkZh: "我们今晚发个热修复。" },
+    { word: "deploy", phonetic: "/dɪˈplɔɪ/", pos: "v.", cat: "发布部署", meaning: "部署", ex: "Don't deploy on Friday.", zh: "周五别部署。", chunk: "We deploy to staging twice a day.", chunkZh: "我们一天往预发部署两次。" },
+    { word: "incident", phonetic: "/ˈɪnsɪdənt/", pos: "n.", cat: "发布部署", meaning: "线上故障/事件", ex: "We declared a Sev-2 incident.", zh: "我们定级为二级故障。", chunk: "We opened an incident for this.", chunkZh: "这个我们开了故障单。" },
+    { word: "postmortem", phonetic: "/ˌpəʊstˈmɔːtəm/", pos: "n.", cat: "发布部署", meaning: "事故复盘（尸检）", ex: "The postmortem is due tomorrow.", zh: "事故复盘明天要出。", chunk: "The postmortem is scheduled for Friday.", chunkZh: "复盘会定在周五。" },
     { word: "sign-off", phonetic: "/ˈsaɪn ɒf/", pos: "n.", cat: "发布部署", meaning: "签字放行、批准", ex: "We need QA sign-off before go-live.", zh: "上线前需要 QA 放行。" }
   ],
 
