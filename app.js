@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.13";
+  const APP_VERSION = "1.0.14";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -131,7 +131,6 @@
     ...SEED.vocab.map(v => ({ [v.word.toLowerCase()]: v.phonetic })),
     SEED.phonetics || {}
   );
-  function stripIPA(p) { return String(p || "").replace(/^\/|\/$/g, ""); }
   // 例句 + 逐词音标：按词切成单元（单词在上、音标在下），音标天然与对应单词对齐；
   // 数字保留显示但无音标；词典缺词的实词只显示单词、无音标；点单元可单独朗读该词
   function sentenceWithIPA(text, target) {
@@ -144,7 +143,7 @@
       const p = isWord ? PHON[tok.toLowerCase()] : null;
       const hl = isWord && tgt && tok.toLowerCase() === tgt ? " target" : "";
       const miss = isWord && !p ? " miss" : "";
-      return `<span class="w-unit${hl}${miss}" data-w="${esc(tok)}"><b>${tok}</b><i>${p ? esc(stripIPA(p)) : "&nbsp;"}</i></span>`;
+      return `<span class="w-unit${hl}${miss}" data-w="${esc(tok)}"><b>${tok}</b><i>${p ? esc(p) : "&nbsp;"}</i></span>`;
     });
   }
   function renderWithIPA(text) {
