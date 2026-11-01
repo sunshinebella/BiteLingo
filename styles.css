@@ -96,13 +96,19 @@ body {
 .flashcard .back .ex-line .word-tap { border-bottom: 1px dotted rgba(255,255,255,.75); color: #fff; }
 .flashcard .back .ex-line .word-tap.show::after { color: #ffe9a8; }
 .flashcard .back .ex-zh { margin-top: 4px; opacity: .85; font-size: 13.5px; }
-/* 整句音标行：小号、半透明，不抢正文视觉 */
+/* 整句音标行：按词切割成块（上音标下原词），可换行、可点读 */
 .flashcard .back .ipa-line {
-  margin-top: 6px; font-size: 12.5px; line-height: 1.9; letter-spacing: .2px;
-  color: rgba(255,255,255,.9); opacity: .9; word-break: break-word;
+  margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px 6px; align-items: stretch;
 }
-.flashcard .back .ipa-line .ipa-w { margin-right: 7px; color: #ffe9a8; }
-.flashcard .back .ipa-line .ipa-miss { margin-right: 7px; opacity: .65; }
+.flashcard .back .ipa-line .ipa-item {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+  background: rgba(255,255,255,.14); border-radius: 7px; padding: 3px 7px; cursor: pointer;
+}
+.flashcard .back .ipa-line .ipa-item:active { background: rgba(255,255,255,.26); }
+.flashcard .back .ipa-line .ipa-item i { font-style: normal; color: #ffe9a8; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.flashcard .back .ipa-line .ipa-item b { font-weight: 500; font-size: 10px; opacity: .72; letter-spacing: .3px; }
+.flashcard .back .ipa-line .ipa-item.miss { background: rgba(255,255,255,.07); cursor: default; }
+.flashcard .back .ipa-line .ipa-item.miss b { opacity: .55; }
 .flashcard .back .btn-row { margin-top: 10px !important; }
 .flashcard .back .btn { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.34); color: #fff; }
 .flashcard .back .btn.green { background: rgba(255,255,255,.92); border-color: transparent; color: var(--green); }

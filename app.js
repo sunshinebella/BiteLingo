@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.11";
+  const APP_VERSION = "1.0.12";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -132,12 +132,15 @@
     SEED.phonetics || {}
   );
   function stripIPA(p) { return String(p || "").replace(/^\/|\/$/g, ""); }
-  // 整句音标行：逐词给出读音，词典缺词时回退显示原词（灰），保证跟得上句子节奏
+  // 整句音标行：按词切割成块（上音标下原词），词典缺词只显示原词（灰）；点块可单独朗读该词
   function ipaLine(text) {
     if (!text) return "";
-    return esc(text).replace(/[A-Za-z][A-Za-z'’-]*/g, (w) => {
-      const p = PHON[w.toLowerCase()];
-      return p ? `<span class="ipa-w">${esc(stripIPA(p))}</span>` : `<span class="ipa-miss">${w}</span>`;
+    return esc(text).replace(/([A-Za-z][A-Za-z'’-]*|[^\sA-Za-z]+)/g, (tok, _, __, str) => {
+      if (!/^[A-Za-z]/.test(tok)) return ""; // 标点/数字：分块视图里省略
+      const p = PHON[tok.toLowerCase()];
+      return p
+        ? `<span class="ipa-item" data-w="${esc(tok)}"><i>${esc(stripIPA(p))}</i><b>${tok}</b></span>`
+        : `<span class="ipa-item miss"><b>${tok}</b></span>`;
     });
   }
   function renderWithIPA(text) {
@@ -292,11 +295,13 @@
     box.innerHTML = renderFlashcard(v);
     const flash = $("#flash");
     const toggle = () => { flipState = !flipState; $("#flash-back").style.display = flipState ? "block" : "none"; };
-    // 背面里的可交互元素（点词查音标、按钮）不触发翻面，避免点一下就翻回正面
-    flash.onclick = (ev) => { if (ev.target.closest("button, .word-tap")) return; toggle(); };
+    // 背面里的可交互元素（点词查音标、音标块发音、按钮）不触发翻面
+    flash.onclick = (ev) => { if (ev.target.closest("button, .word-tap, .ipa-item")) return; toggle(); };
     $("#v-flip").onclick = toggle;
     const exSpeak = $("#v-ex-speak");
     if (exSpeak) exSpeak.onclick = () => speak(v.ex);
+    // 点音标块单独朗读该词
+    $$("#v-ipa .ipa-item[data-w]").forEach(el => el.onclick = () => speak(el.dataset.w));
     // 整句音标显示偏好（默认开，可一键收起，记住选择）
     const ipaBox = $("#v-ipa"), ipaBtn = $("#v-ipa-toggle");
     if (ipaBox && ipaBtn) {
