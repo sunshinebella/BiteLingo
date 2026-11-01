@@ -8,7 +8,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   // 版本号唯一来源：发版只改这一处（标签名与 CHANGELOG 对齐）
-  const APP_VERSION = "1.0.10";
+  const APP_VERSION = "1.0.11";
   const REPO_URL = "https://github.com/sunshinebella/BiteLingo";
   const KEY = {
     streak: "eng_streak_v1",
@@ -18,7 +18,8 @@
     listened: "eng_listened_v1",
     progress: "eng_progress_v1",
     speak: "eng_speak_v1",
-    checkinLog: "eng_checkin_log_v1"
+    checkinLog: "eng_checkin_log_v1",
+    pref: "eng_pref_v1"
   };
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 沙箱/隐私模式禁止存储时静默失败，不阻断按钮交互 */ } };
@@ -130,6 +131,15 @@
     ...SEED.vocab.map(v => ({ [v.word.toLowerCase()]: v.phonetic })),
     SEED.phonetics || {}
   );
+  function stripIPA(p) { return String(p || "").replace(/^\/|\/$/g, ""); }
+  // 整句音标行：逐词给出读音，词典缺词时回退显示原词（灰），保证跟得上句子节奏
+  function ipaLine(text) {
+    if (!text) return "";
+    return esc(text).replace(/[A-Za-z][A-Za-z'’-]*/g, (w) => {
+      const p = PHON[w.toLowerCase()];
+      return p ? `<span class="ipa-w">${esc(stripIPA(p))}</span>` : `<span class="ipa-miss">${w}</span>`;
+    });
+  }
   function renderWithIPA(text) {
     return esc(text).replace(/[A-Za-z][A-Za-z'’-]*/g, (m) => {
       const ipa = PHON[m.toLowerCase()];
@@ -282,8 +292,22 @@
     box.innerHTML = renderFlashcard(v);
     const flash = $("#flash");
     const toggle = () => { flipState = !flipState; $("#flash-back").style.display = flipState ? "block" : "none"; };
-    flash.onclick = toggle;
+    // 背面里的可交互元素（点词查音标、按钮）不触发翻面，避免点一下就翻回正面
+    flash.onclick = (ev) => { if (ev.target.closest("button, .word-tap")) return; toggle(); };
     $("#v-flip").onclick = toggle;
+    const exSpeak = $("#v-ex-speak");
+    if (exSpeak) exSpeak.onclick = () => speak(v.ex);
+    // 整句音标显示偏好（默认开，可一键收起，记住选择）
+    const ipaBox = $("#v-ipa"), ipaBtn = $("#v-ipa-toggle");
+    if (ipaBox && ipaBtn) {
+      const apply = on => { ipaBox.style.display = on ? "block" : "none"; ipaBtn.textContent = on ? "隐藏音标" : "显示音标"; };
+      apply(load(KEY.pref, {}).showIpa !== false);
+      ipaBtn.onclick = () => {
+        const next = ipaBox.style.display === "none";
+        apply(next);
+        const p = load(KEY.pref, {}); p.showIpa = next; save(KEY.pref, p);
+      };
+    }
     $("#v-no").onclick = () => { updateVocab(v.word, false); setDailyIfEnough("vocab", false); afterVocab(v.word, false); };
     $("#v-yes").onclick = () => { updateVocab(v.word, true); afterVocab(v.word, true); };
   }
@@ -296,8 +320,13 @@
         <div class="zh-banner">${esc(v.meaning || "")}</div>
         <div class="back" id="flash-back" style="display:none;">
           <div>${esc(v.meaning)}</div>
-          <div style="margin-top:8px;opacity:.92;">${esc(v.ex)}</div>
-          <div style="margin-top:4px;opacity:.85;font-size:13.5px;">${esc(v.zh)}</div>
+          <div class="ex-line">${richText(v.ex, [v.word])}</div>
+          ${v.ex ? `<div class="ipa-line" id="v-ipa">${ipaLine(v.ex)}</div>` : ""}
+          <div class="ex-zh">${esc(v.zh)}</div>
+          <div class="btn-row" style="margin-top:10px;">
+            <button class="btn soft" id="v-ex-speak">🔊 读例句</button>
+            ${v.ex ? `<button class="btn ghost" id="v-ipa-toggle">隐藏音标</button>` : ""}
+          </div>
           <span class="cat">${esc(v.cat)}</span>
         </div>
       </div>
