@@ -91,10 +91,24 @@ body {
 .flashcard .ph { opacity: .85; margin-top: 6px; font-size: 15px; }
 .flashcard .zh-banner { margin-top: 10px; font-size: 14px; opacity: .95; padding-left: 10px; border-left: 3px solid rgba(255,255,255,.45); line-height: 1.5; }
 .flashcard .back { margin-top: 14px; font-size: 15px; line-height: 1.6; }
-.flashcard .back .ex-line { margin-top: 8px; opacity: .95; font-size: 15.5px; line-height: 1.7; }
-.flashcard .back .ex-line mark { background: rgba(255,255,255,.26); color: #fff; padding: 0 3px; border-radius: 4px; font-weight: 700; }
-.flashcard .back .ex-line .word-tap { border-bottom: 1px dotted rgba(255,255,255,.75); color: #fff; }
-.flashcard .back .ex-line .word-tap.show::after { color: #ffe9a8; }
+.flashcard .back .ex-line { margin-top: 10px; opacity: .95; font-size: 15.5px; line-height: 1.55; }
+/* 词单元：单词在上、音标在下，各自居中 → 音标与对应单词自然对齐 */
+.flashcard .back .ex-line .w-unit {
+  display: inline-flex; flex-direction: column; align-items: center;
+  vertical-align: bottom; cursor: pointer; padding: 0 2px;
+}
+.flashcard .back .ex-line .w-unit > b { font-weight: 500; }
+.flashcard .back .ex-line .w-unit > i {
+  font-style: normal; font-size: 11px; line-height: 1.5; color: #ffe9a8;
+  opacity: .92; white-space: nowrap; letter-spacing: .2px;
+}
+.flashcard .back .ex-line .w-unit.target > b {
+  font-weight: 800; background: rgba(255,255,255,.26); border-radius: 4px; padding: 0 3px;
+}
+/* 标点：不占音标位，底部与单词基线对齐 */
+.flashcard .back .ex-line .w-punc { display: inline-flex; flex-direction: column; justify-content: flex-end; }
+/* 收起音标 */
+.flashcard .back .ex-line.hide-ipa .w-unit > i { display: none; }
 .flashcard .back .ex-zh { margin-top: 4px; opacity: .85; font-size: 13.5px; }
 /* 整句音标行：按词切割成块（上音标下原词），可换行、可点读 */
 .flashcard .back .ipa-line {
